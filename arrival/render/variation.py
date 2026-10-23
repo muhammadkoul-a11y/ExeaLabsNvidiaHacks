@@ -180,7 +180,7 @@ class CosmosClient:
 
         return base64.b64encode(path.read_bytes()).decode("ascii")
 
-    def transform_video(self, frames: list[np.ndarray], fps: int) -> tuple[list[np.ndarray], dict]:
+    def transform_video(self, frames: list[np.ndarray], fps: int, seed: int | None = None) -> tuple[list[np.ndarray], dict]:
         """Send a complete episode and its edge-map control to Transfer NIM; return decoded RGB frames."""
         import base64
         import tempfile
@@ -201,6 +201,10 @@ class CosmosClient:
             raise ValueError("Cosmos Transfer expects uint8 RGB frames")
         if any(np.asarray(frame).shape != first.shape or np.asarray(frame).dtype != np.uint8 for frame in frames):
             raise ValueError("all episode frames must have the same uint8 RGB shape")
+        if first.shape[0] % 8 or first.shape[1] % 8:
+            raise ValueError("Cosmos Transfer requires input frame height and width to be multiples of 8")
+        if seed is not None and (type(seed) is not int or not 0 <= seed < 2**32):
+            raise ValueError("seed must be an integer between 0 and 2**32 - 1")
 
         # Transfer 2.5 documents 93-480 input frames. Pad short episodes by repeating the
         # final frame, then trim generated padding so dataset timing and frame count stay intact.
@@ -226,6 +230,8 @@ class CosmosClient:
                     "control": self._read_video_bytes(control_path),
                 },
             }
+            if seed is not None:
+                payload["seed"] = seed
             body = json.dumps(payload).encode("utf-8")
             last: Exception | None = None
             for attempt in range(self.retries + 1):
@@ -266,7 +272,7 @@ class CosmosClient:
                         "control_weight": self.control_weight, "input_frames": original_frame_count,
                         "inference_frames": len(inference_frames), "output_frames": original_frame_count,
                         "padding_frames": len(inference_frames) - original_frame_count,
-                        "attempts": attempt + 1, "seed": result.get("seed"),
+                        "attempts": attempt + 1, "requested_seed": seed, "seed": result.get("seed"),
                     }
                 except (urllib.error.URLError, OSError, ValueError, KeyError, json.JSONDecodeError) as e:
                     last = e
@@ -332,7 +338,8 @@ def vary_dataset(src: str | Path, dst: str | Path, backend: str = "local_stub", 
             cosmos_video_requests += 1
             cosmos_t0 = time.perf_counter()
             try:
-                cosmos_frames, cosmos_params = cli.transform_video(frames, fps)
+                episode_seed = _u64("cosmos", seed, ep) % (2**32)
+                cosmos_frames, cosmos_params = cli.transform_video(frames, fps, seed=episode_seed)
             except Exception as e:  # noqa: BLE001 - failed video request leaves selected source frames unchanged
                 cosmos_error = str(e)
                 cosmos_video_failures += 1
