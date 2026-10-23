@@ -59,6 +59,7 @@ def serve_video(handler_fn):
             assert isinstance(payload.get("edge"), dict)
             assert isinstance(payload["edge"].get("control"), str)
             assert payload.get("prompt") and payload.get("resolution") == "480"
+            assert isinstance(payload.get("seed"), int) and 0 <= payload["seed"] < 2**32
             with tempfile.TemporaryDirectory() as tmp:
                 source = Path(tmp) / "source.mp4"
                 output = Path(tmp) / "output.mp4"
