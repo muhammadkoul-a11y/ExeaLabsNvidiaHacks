@@ -314,6 +314,8 @@ def vary_dataset(src: str | Path, dst: str | Path, backend: str = "local_stub", 
     counts = {"selected": 0, "ok": 0, "rejected": 0, "failed": 0, "skipped": 0}
     consecutive = 0
     cosmos_ok = 0
+    cosmos_video_requests = 0
+    cosmos_video_failures = 0
     rows: list[dict] = []
     for vid in sorted((src / "videos").glob("chunk-*/*/episode_*.mp4")):
         key, ep = vid.parent.name, int(vid.stem.split("_")[1])
@@ -327,11 +329,13 @@ def vary_dataset(src: str | Path, dst: str | Path, backend: str = "local_stub", 
         cosmos_attempted = False
         if cli.name == "cosmos" and selected_indices and cli.url and consecutive < BREAKER:
             cosmos_attempted = True
+            cosmos_video_requests += 1
             cosmos_t0 = time.perf_counter()
             try:
                 cosmos_frames, cosmos_params = cli.transform_video(frames, fps)
             except Exception as e:  # noqa: BLE001 - failed video request leaves selected source frames unchanged
                 cosmos_error = str(e)
+                cosmos_video_failures += 1
                 consecutive += 1  # count failed video requests, not selected frames inside a video
             else:
                 consecutive = 0
