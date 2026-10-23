@@ -142,46 +142,127 @@ class LocalStub:
 
 
 class CosmosClient:
-    """POST the frame as PNG to url, expect an image back. Errors raise after `retries` extra attempts.
-    Needs COSMOS_URL; the model and version come from the X-Cosmos-Model / X-Cosmos-Version response headers."""
+    """Client for NVIDIA Cosmos Transfer 2.5 NIM's video-to-video API.
+
+    COSMOS_URL must point to the deployed NIM /v1/infer endpoint. Transfer requires
+    a source video plus at least one control video and returns JSON containing
+    b64_video; it is not a per-frame PNG endpoint. This client processes one
+    episode video at a time so temporal context and edge controls stay aligned.
+    """
 
     name = "cosmos"
+    model = "cosmos-transfer2.5"
+    version = "nim-v1"
 
-    def __init__(self, url: str | None = None, timeout: float = 30.0, retries: int = 2, backoff: float = 0.5,
-                 prompt: str = "same scene, different lighting and surface appearance"):
+    def __init__(self, url: str | None = None, timeout: float = 1800.0, retries: int = 1, backoff: float = 1.0,
+                 prompt: str = "Preserve the scene layout and all object positions. Vary only lighting, materials, and surface appearance.",
+                 resolution: str = "480", control_weight: float = 1.0):
         from arrival import config as settings
 
         self.url = url if url is not None else settings.get("COSMOS_URL")
-        self.timeout, self.retries, self.backoff, self.prompt = timeout, retries, backoff, prompt
-        self.model, self.version = "unknown", "unknown"
+        self.timeout, self.retries, self.backoff = timeout, retries, backoff
+        self.prompt, self.resolution, self.control_weight = prompt, resolution, control_weight
 
-    def __call__(self, frame: np.ndarray, episode_index: int, frame_index: int) -> tuple[np.ndarray, dict]:
+    @staticmethod
+    def _write_video(path: Path, frames: list[np.ndarray], fps: int) -> None:
         import imageio.v2 as imageio
 
-        buf = io.BytesIO()
-        imageio.imwrite(buf, frame, format="PNG")
-        last: Exception | None = None
-        for attempt in range(self.retries + 1):
-            if attempt:
-                time.sleep(self.backoff * attempt)
-            req = urllib.request.Request(self.url, data=buf.getvalue(), method="POST", headers={
-                "Content-Type": "image/png", "X-Prompt": self.prompt})
-            try:
-                with urllib.request.urlopen(req, timeout=self.timeout) as r:
-                    body = r.read()
-                    self.model = r.headers.get("X-Cosmos-Model", self.model)
-                    self.version = r.headers.get("X-Cosmos-Version", self.version)
-                img = np.asarray(imageio.imread(io.BytesIO(body), format="PNG"))
-                if (img.dtype != np.uint8 or img.ndim != 3 or img.shape[2] not in (3, 4)
-                        or img.shape[:2] != frame.shape[:2]):
-                    raise ValueError(f"expected uint8 RGB or RGBA PNG at {frame.shape[:2]}, got "
-                                     f"{img.dtype} {img.shape}")
-                img = img[..., :3]
-                return img, {"prompt": self.prompt, "attempts": attempt + 1}
-            except (urllib.error.URLError, OSError, ValueError) as e:
-                last = e
-        raise RuntimeError(f"cosmos request failed after {self.retries + 1} attempts: {last}")
+        with imageio.get_writer(str(path), format="FFMPEG", fps=fps, codec="libx264",
+                                macro_block_size=None, pixelformat="yuv420p") as writer:
+            for frame in frames:
+                writer.append_data(np.asarray(frame, dtype=np.uint8))
 
+    @staticmethod
+    def _read_video_bytes(path: Path) -> str:
+        import base64
+
+        return base64.b64encode(path.read_bytes()).decode("ascii")
+
+    def transform_video(self, frames: list[np.ndarray], fps: int) -> tuple[list[np.ndarray], dict]:
+        """Send a complete episode and its edge-map control to Transfer NIM; return decoded RGB frames."""
+        import base64
+        import tempfile
+        from PIL import Image
+        import imageio.v2 as imageio
+
+        if not self.url:
+            raise RuntimeError("COSMOS_URL is not set")
+        if not frames:
+            return [], {"prompt": self.prompt, "request_scope": "video"}
+        if type(fps) is not int or fps < 1:
+            raise ValueError("fps must be a positive integer")
+        first = np.asarray(frames[0])
+        if first.dtype != np.uint8 or first.ndim != 3 or first.shape[2] != 3:
+            raise ValueError("Cosmos Transfer expects uint8 RGB frames")
+        if any(np.asarray(frame).shape != first.shape or np.asarray(frame).dtype != np.uint8 for frame in frames):
+            raise ValueError("all episode frames must have the same uint8 RGB shape")
+
+        # Transfer NIM expects a source video plus a matching control video, not PNG bytes.
+        # Use edge maps as a structural control to discourage geometry changes.
+        edges = []
+        for frame in frames:
+            edge = np.clip(edge_map(np.asarray(frame)), 0, 255).astype(np.uint8)
+            edges.append(np.repeat(edge[..., None], 3, axis=2))
+
+        with tempfile.TemporaryDirectory(prefix="arrival-cosmos-") as tmp:
+            root = Path(tmp)
+            source_path, control_path, output_path = root / "source.mp4", root / "edge.mp4", root / "output.mp4"
+            self._write_video(source_path, frames, fps)
+            self._write_video(control_path, edges, fps)
+            payload = {
+                "prompt": self.prompt,
+                "video": self._read_video_bytes(source_path),
+                "resolution": self.resolution,
+                "edge": {
+                    "control_weight": self.control_weight,
+                    "control": self._read_video_bytes(control_path),
+                },
+            }
+            body = json.dumps(payload).encode("utf-8")
+            last: Exception | None = None
+            for attempt in range(self.retries + 1):
+                if attempt:
+                    time.sleep(self.backoff * attempt)
+                req = urllib.request.Request(self.url, data=body, method="POST", headers={
+                    "Content-Type": "application/json", "Accept": "application/json"})
+                try:
+                    with urllib.request.urlopen(req, timeout=self.timeout) as response:
+                        result = json.loads(response.read().decode("utf-8"))
+                    encoded = result.get("b64_video")
+                    if not isinstance(encoded, str) or not encoded:
+                        raise ValueError("Cosmos Transfer response is missing non-empty b64_video")
+                    try:
+                        output_path.write_bytes(base64.b64decode(encoded, validate=True))
+                    except (ValueError, base64.binascii.Error) as e:
+                        raise ValueError("Cosmos Transfer returned invalid base64 video data") from e
+                    with imageio.get_reader(str(output_path), format="FFMPEG") as reader:
+                        output_frames = [np.asarray(frame) for frame in reader]
+                    if len(output_frames) != len(frames):
+                        raise ValueError(f"Cosmos Transfer returned {len(output_frames)} frames; expected {len(frames)}")
+                    height, width = first.shape[:2]
+                    normalized = []
+                    for output in output_frames:
+                        if output.ndim != 3 or output.shape[2] < 3 or output.dtype != np.uint8:
+                            raise ValueError(f"expected uint8 RGB output frames, got {output.dtype} {output.shape}")
+                        rgb = output[..., :3]
+                        if rgb.shape[:2] != (height, width):
+                            # NIM may return its configured resolution; resize back to dataset dimensions
+                            # before geometry checks and insertion into the copied dataset.
+                            rgb = np.asarray(Image.fromarray(rgb).resize((width, height), Image.Resampling.LANCZOS))
+                        normalized.append(rgb)
+                    return normalized, {
+                        "prompt": self.prompt, "request_scope": "episode_video",
+                        "resolution": self.resolution, "control": "edge",
+                        "control_weight": self.control_weight, "input_frames": len(frames),
+                        "output_frames": len(output_frames), "attempts": attempt + 1,
+                        "seed": result.get("seed"),
+                    }
+                except (urllib.error.URLError, OSError, ValueError, KeyError, json.JSONDecodeError) as e:
+                    last = e
+            raise RuntimeError(f"Cosmos Transfer request failed after {self.retries + 1} attempts: {last}")
+
+    def __call__(self, frame: np.ndarray, episode_index: int, frame_index: int) -> tuple[np.ndarray, dict]:
+        raise RuntimeError("Cosmos Transfer is video-based; call transform_video() with the full episode")
 
 def _read_video(path: Path) -> list[np.ndarray]:
     import imageio.v2 as imageio
@@ -227,7 +308,19 @@ def vary_dataset(src: str | Path, dst: str | Path, backend: str = "local_stub", 
         key, ep = vid.parent.name, int(vid.stem.split("_")[1])
         frames = _read_video(vid)
         changed = False
-        for fi in select_frames(ep, len(frames), seed, fraction):
+        selected_indices = select_frames(ep, len(frames), seed, fraction)
+        cosmos_frames = None
+        cosmos_error = None
+        cosmos_params = {}
+        cosmos_latency_ms = 0.0
+        if cli.name == "cosmos" and selected_indices and cli.url and consecutive < BREAKER:
+            cosmos_t0 = time.perf_counter()
+            try:
+                cosmos_frames, cosmos_params = cli.transform_video(frames, fps)
+            except Exception as e:  # noqa: BLE001 - failed video request leaves selected source frames unchanged
+                cosmos_error = str(e)
+            cosmos_latency_ms = round((time.perf_counter() - cosmos_t0) * 1000, 2)
+        for selected_position, fi in enumerate(selected_indices):
             counts["selected"] += 1
             orig = frames[fi]
             row = {"original_id": f"{key}/ep{ep:06d}/f{fi:06d}", "variant_id": f"{key}/ep{ep:06d}/f{fi:06d}_v",
@@ -244,20 +337,32 @@ def vary_dataset(src: str | Path, dst: str | Path, backend: str = "local_stub", 
                 continue
             t0 = time.perf_counter()
             try:
-                out, params = cli(orig, ep, fi)
+                if cli.name == "cosmos":
+                    if cosmos_error:
+                        raise RuntimeError(cosmos_error)
+                    if cosmos_frames is None:
+                        raise RuntimeError("Cosmos Transfer request was not attempted")
+                    out = cosmos_frames[fi]
+                    params = {**cosmos_params, "frame_index": fi}
+                    # The model call is per episode, so account its latency only once in aggregate metrics.
+                    frame_latency = cosmos_latency_ms if selected_position == 0 else 0.0
+                else:
+                    out, params = cli(orig, ep, fi)
+                    frame_latency = round((time.perf_counter() - t0) * 1000, 2)
                 if not isinstance(out, np.ndarray):
                     raise ValueError("backend frame must be a numpy array")
                 if not isinstance(params, dict):
                     raise ValueError("backend parameters must be a JSON object")
                 json.dumps(params)  # sidecar parameters must be serializable
             except Exception as e:  # noqa: BLE001 - any backend error leaves the frame original
-                row.update(latency_ms=round((time.perf_counter() - t0) * 1000, 2), reason=str(e))
+                frame_latency = cosmos_latency_ms if cli.name == "cosmos" and selected_position == 0 else round((time.perf_counter() - t0) * 1000, 2)
+                row.update(latency_ms=frame_latency, reason=str(e))
                 counts["failed"] += 1
                 consecutive += 1
                 rows.append(row)
                 continue
             consecutive = 0
-            row.update(latency_ms=round((time.perf_counter() - t0) * 1000, 2), model=cli.model, version=cli.version,
+            row.update(latency_ms=frame_latency, model=cli.model, version=cli.version,
                        parameters={**row["parameters"], **params})
             chk = check_frame(orig, out, mask, edge_min, mask_max)
             row.update(edge_corr=chk["edge_corr"], mask_change=chk["mask_change"], reason=chk["reason"])
