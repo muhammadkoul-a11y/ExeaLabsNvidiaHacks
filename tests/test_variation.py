@@ -208,7 +208,8 @@ def test_server_down_falls_back_cleanly(dataset, tmp_path):
     client = variation.CosmosClient(f"http://127.0.0.1:{port}/", timeout=1, retries=1, backoff=0)
     s = variation.vary_dataset(dataset, tmp_path / "d", "cosmos", client=client)
     assert s["arrival_appearance_variation"] == "none" and s["ok"] == 0 and s["failed"] == s["requests"] == 16
-    assert s["skipped"] == 16 - variation.BREAKER
+    # The breaker counts failed episode-level API requests, not selected frames.
+    assert s["skipped"] == 0
     assert {r["status"] for r in rows(tmp_path / "d")} == {"failed"}
     assert not (tmp_path / "d" / variation.VIDEO_DIR).exists()
     assert validate(tmp_path / "d") == []
