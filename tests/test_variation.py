@@ -174,6 +174,7 @@ def test_cosmos_mock_server_pairs_ids_and_label(dataset, tmp_path):
         srv.shutdown()
         srv.server_close()
     assert s["arrival_appearance_variation"] == "cosmos" and s["ok"] == 16 and s["failed"] == 0
+    assert s["cosmos_video_requests"] == 2 and s["cosmos_video_failures"] == 0
     assert s["added_latency_s"] >= s["backend_latency_s"] > 0 and s["cost_usd"] is None
     rs = rows(tmp_path / "c")
     assert all(r["variant_id"] == r["original_id"] + "_v" and r["model"] == "cosmos-transfer2.5"
@@ -210,6 +211,7 @@ def test_server_down_falls_back_cleanly(dataset, tmp_path):
     assert s["arrival_appearance_variation"] == "none" and s["ok"] == 0 and s["failed"] == s["requests"] == 16
     # The breaker counts failed episode-level API requests, not selected frames.
     assert s["skipped"] == 0
+    assert s["cosmos_video_requests"] == 2 and s["cosmos_video_failures"] == 2
     assert {r["status"] for r in rows(tmp_path / "d")} == {"failed"}
     assert not (tmp_path / "d" / variation.VIDEO_DIR).exists()
     assert validate(tmp_path / "d") == []
