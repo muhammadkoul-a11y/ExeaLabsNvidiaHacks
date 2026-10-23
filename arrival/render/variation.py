@@ -190,6 +190,9 @@ class CosmosClient:
             raise RuntimeError("COSMOS_URL is not set")
         if not frames:
             return [], {"prompt": self.prompt, "request_scope": "video"}
+        if len(frames) > 480:
+            raise ValueError("Cosmos Transfer accepts at most 480 input frames per request; split longer episodes into chunks")
+        original_frame_count = len(frames)
         if type(fps) is not int or fps < 1:
             raise ValueError("fps must be a positive integer")
         first = np.asarray(frames[0])
@@ -198,17 +201,20 @@ class CosmosClient:
         if any(np.asarray(frame).shape != first.shape or np.asarray(frame).dtype != np.uint8 for frame in frames):
             raise ValueError("all episode frames must have the same uint8 RGB shape")
 
+        # Transfer 2.5 documents 93-480 input frames. Pad short episodes by repeating the
+        # final frame, then trim generated padding so dataset timing and frame count stay intact.
+        inference_frames = frames + [frames[-1]] * max(0, 93 - len(frames))
         # Transfer NIM expects a source video plus a matching control video, not PNG bytes.
         # Use edge maps as a structural control to discourage geometry changes.
         edges = []
-        for frame in frames:
+        for frame in inference_frames:
             edge = np.clip(edge_map(np.asarray(frame)), 0, 255).astype(np.uint8)
             edges.append(np.repeat(edge[..., None], 3, axis=2))
 
         with tempfile.TemporaryDirectory(prefix="arrival-cosmos-") as tmp:
             root = Path(tmp)
             source_path, control_path, output_path = root / "source.mp4", root / "edge.mp4", root / "output.mp4"
-            self._write_video(source_path, frames, fps)
+            self._write_video(source_path, inference_frames, fps)
             self._write_video(control_path, edges, fps)
             payload = {
                 "prompt": self.prompt,
@@ -240,8 +246,8 @@ class CosmosClient:
                         raise ValueError("Cosmos Transfer returned invalid base64 video data") from e
                     with imageio.get_reader(str(output_path), format="FFMPEG") as reader:
                         output_frames = [np.asarray(frame) for frame in reader]
-                    if len(output_frames) != len(frames):
-                        raise ValueError(f"Cosmos Transfer returned {len(output_frames)} frames; expected {len(frames)}")
+                    if len(output_frames) != len(inference_frames):
+                        raise ValueError(f"Cosmos Transfer returned {len(output_frames)} frames; expected {len(inference_frames)}")
                     height, width = first.shape[:2]
                     normalized = []
                     for output in output_frames:
@@ -253,12 +259,13 @@ class CosmosClient:
                             # before geometry checks and insertion into the copied dataset.
                             rgb = np.asarray(Image.fromarray(rgb).resize((width, height), Image.Resampling.LANCZOS))
                         normalized.append(rgb)
-                    return normalized, {
+                    return normalized[:original_frame_count], {
                         "prompt": self.prompt, "request_scope": "episode_video",
                         "resolution": self.resolution, "control": "edge",
-                        "control_weight": self.control_weight, "input_frames": len(frames),
-                        "output_frames": len(output_frames), "attempts": attempt + 1,
-                        "seed": result.get("seed"),
+                        "control_weight": self.control_weight, "input_frames": original_frame_count,
+                        "inference_frames": len(inference_frames), "output_frames": original_frame_count,
+                        "padding_frames": len(inference_frames) - original_frame_count,
+                        "attempts": attempt + 1, "seed": result.get("seed"),
                     }
                 except (urllib.error.URLError, OSError, ValueError, KeyError, json.JSONDecodeError) as e:
                     last = e
