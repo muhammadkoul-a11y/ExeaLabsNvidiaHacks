@@ -160,6 +160,7 @@ class CosmosClient:
         from arrival import config as settings
 
         self.url = url if url is not None else settings.get("COSMOS_URL")
+        self.api_key = settings.get("COSMOS_API_KEY")
         self.timeout, self.retries, self.backoff = timeout, retries, backoff
         self.prompt, self.resolution, self.control_weight = prompt, resolution, control_weight
 
@@ -223,8 +224,10 @@ class CosmosClient:
             for attempt in range(self.retries + 1):
                 if attempt:
                     time.sleep(self.backoff * attempt)
-                req = urllib.request.Request(self.url, data=body, method="POST", headers={
-                    "Content-Type": "application/json", "Accept": "application/json"})
+                headers = {"Content-Type": "application/json", "Accept": "application/json"}
+                if self.api_key:
+                    headers["Authorization"] = f"Bearer {self.api_key}"
+                req = urllib.request.Request(self.url, data=body, method="POST", headers=headers)
                 try:
                     with urllib.request.urlopen(req, timeout=self.timeout) as response:
                         result = json.loads(response.read().decode("utf-8"))
