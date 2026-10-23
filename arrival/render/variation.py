@@ -1,8 +1,9 @@
 """variation: post-render appearance variation over a finished sim dataset. Works on a COPY, never the source.
 
-Backends: 'cosmos' (HTTP client to COSMOS_URL, never called from tests) and 'local_stub' (seeded colour jitter
-plus mild blur, geometry fixed). A restyled frame is kept only if edge structure (and an optional robot/object
-mask) survive; otherwise the original frame stays. The dataset label is 'cosmos' only after a real Cosmos success.
+Backends: 'cosmos' (video-to-video client for NVIDIA Cosmos Transfer 2.5 NIM at COSMOS_URL) and 'local_stub'
+(seeded colour jitter plus mild blur, geometry fixed). A restyled frame is kept only if edge structure (and an
+optional robot/object mask) survive; otherwise the original frame stays. The dataset label is 'cosmos' only after
+an accepted frame from a successful Cosmos request.
 """
 
 from __future__ import annotations
