@@ -1,8 +1,11 @@
+import base64
 import hashlib
 import http.server
 import io
 import json
 import threading
+import tempfile
+from pathlib import Path
 
 import imageio.v2 as imageio
 import numpy as np
@@ -47,18 +50,32 @@ def video(path):
     return imageio.mimread(str(path), memtest=False)
 
 
-def serve(handler_fn):
+def serve_video(handler_fn):
+    """Mock the JSON video contract used by Cosmos Transfer NIM."""
     class H(http.server.BaseHTTPRequestHandler):
         def do_POST(self):
-            body = self.rfile.read(int(self.headers["Content-Length"]))
-            out = handler_fn(imageio.imread(io.BytesIO(body), format="PNG"))
-            buf = io.BytesIO()
-            imageio.imwrite(buf, out, format="PNG")
+            payload = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+            assert isinstance(payload.get("video"), str)
+            assert isinstance(payload.get("edge"), dict)
+            assert isinstance(payload["edge"].get("control"), str)
+            assert payload.get("prompt") and payload.get("resolution") == "480"
+            with tempfile.TemporaryDirectory() as tmp:
+                source = Path(tmp) / "source.mp4"
+                output = Path(tmp) / "output.mp4"
+                source.write_bytes(base64.b64decode(payload["video"]))
+                frames = imageio.mimread(str(source), memtest=False)
+                result_frames = handler_fn(frames)
+                if result_frames is None:
+                    response = {}
+                else:
+                    imageio.mimwrite(str(output), result_frames, format="FFMPEG", fps=20,
+                                     codec="libx264", macro_block_size=None)
+                    response = {"b64_video": base64.b64encode(output.read_bytes()).decode("ascii")}
+            data = json.dumps(response).encode()
             self.send_response(200)
-            self.send_header("X-Cosmos-Model", "mock-cosmos")
-            self.send_header("X-Cosmos-Version", "0.1")
+            self.send_header("Content-Type", "application/json")
             self.end_headers()
-            self.wfile.write(buf.getvalue())
+            self.wfile.write(data)
 
         def log_message(self, *a):
             pass
@@ -149,7 +166,7 @@ def test_local_stub_differs_keeps_geometry_and_source_untouched(dataset, tmp_pat
 
 
 def test_cosmos_mock_server_pairs_ids_and_label(dataset, tmp_path):
-    srv = serve(lambda img: np.clip(img.astype(int) + 20, 0, 255).astype(np.uint8))
+    srv = serve_video(lambda frames: [np.clip(img.astype(int) + 20, 0, 255).astype(np.uint8) for img in frames])
     try:
         client = variation.CosmosClient(f"http://127.0.0.1:{srv.server_port}/", timeout=5, retries=0)
         s = variation.vary_dataset(dataset, tmp_path / "c", "cosmos", seed=1, client=client)
@@ -159,12 +176,12 @@ def test_cosmos_mock_server_pairs_ids_and_label(dataset, tmp_path):
     assert s["arrival_appearance_variation"] == "cosmos" and s["ok"] == 16 and s["failed"] == 0
     assert s["added_latency_s"] >= s["backend_latency_s"] > 0 and s["cost_usd"] is None
     rs = rows(tmp_path / "c")
-    assert all(r["variant_id"] == r["original_id"] + "_v" and r["model"] == "mock-cosmos" and r["latency_ms"] > 0
+    assert all(r["variant_id"] == r["original_id"] + "_v" and r["model"] == "cosmos-transfer2.5" and r["latency_ms"] > 0
                for r in rs)
 
 
-def test_unchanged_cosmos_frames_are_not_claimed_as_variation(dataset, tmp_path):
-    srv = serve(lambda img: img)
+def test_cosmos_invalid_response_is_not_labelled(dataset, tmp_path):
+    srv = serve_video(lambda frames: None)
     try:
         client = variation.CosmosClient(f"http://127.0.0.1:{srv.server_port}/", timeout=5, retries=0)
         summary = variation.vary_dataset(dataset, tmp_path / "copy", "cosmos", client=client)
@@ -172,23 +189,18 @@ def test_unchanged_cosmos_frames_are_not_claimed_as_variation(dataset, tmp_path)
         srv.shutdown()
         srv.server_close()
     assert summary["arrival_appearance_variation"] == "none"
-    assert summary["rejected"] == summary["requests"] == 16
-    assert all("unchanged" in row["reason"] for row in rows(tmp_path / "copy"))
+    assert summary["failed"] == summary["requests"]
+    assert all("missing non-empty b64_video" in row["reason"] for row in rows(tmp_path / "copy"))
 
 
-def test_cosmos_client_rejects_grayscale_response():
-    srv = serve(lambda img: img[..., 0])
-    try:
-        client = variation.CosmosClient(f"http://127.0.0.1:{srv.server_port}/", timeout=5, retries=0)
-        with pytest.raises(RuntimeError, match="expected uint8 RGB or RGBA PNG"):
-            client(np.zeros((8, 8, 3), np.uint8), 0, 0)
-    finally:
-        srv.shutdown()
-        srv.server_close()
+def test_cosmos_client_rejects_legacy_single_frame_contract():
+    client = variation.CosmosClient("http://127.0.0.1:1/v1/infer", retries=0)
+    with pytest.raises(RuntimeError, match="video-based"):
+        client(np.zeros((8, 8, 3), np.uint8), 0, 0)
 
 
 def test_server_down_falls_back_cleanly(dataset, tmp_path):
-    srv = serve(lambda img: img)
+    srv = serve_video(lambda frames: frames)
     port = srv.server_port
     srv.shutdown()
     srv.server_close()
@@ -208,7 +220,7 @@ def test_no_cosmos_url_is_skipped_not_labelled(dataset, tmp_path, monkeypatch):
 
 
 def test_geometry_shift_is_rejected(dataset, tmp_path):
-    srv = serve(lambda img: np.roll(img, 12, axis=1))
+    srv = serve_video(lambda frames: [np.roll(img, 12, axis=1) for img in frames])
     try:
         client = variation.CosmosClient(f"http://127.0.0.1:{srv.server_port}/", timeout=5, retries=0)
         s = variation.vary_dataset(dataset, tmp_path / "r", "cosmos", client=client)
