@@ -324,12 +324,17 @@ def vary_dataset(src: str | Path, dst: str | Path, backend: str = "local_stub", 
         cosmos_error = None
         cosmos_params = {}
         cosmos_latency_ms = 0.0
+        cosmos_attempted = False
         if cli.name == "cosmos" and selected_indices and cli.url and consecutive < BREAKER:
+            cosmos_attempted = True
             cosmos_t0 = time.perf_counter()
             try:
                 cosmos_frames, cosmos_params = cli.transform_video(frames, fps)
             except Exception as e:  # noqa: BLE001 - failed video request leaves selected source frames unchanged
                 cosmos_error = str(e)
+                consecutive += 1  # count failed video requests, not selected frames inside a video
+            else:
+                consecutive = 0
             cosmos_latency_ms = round((time.perf_counter() - cosmos_t0) * 1000, 2)
         for selected_position, fi in enumerate(selected_indices):
             counts["selected"] += 1
@@ -339,9 +344,9 @@ def vary_dataset(src: str | Path, dst: str | Path, backend: str = "local_stub", 
                    "version": cli.version, "parameters": {"seed": seed, "fraction": fraction},
                    "latency_ms": None, "status": "failed", "skipped": False, "reason": None,
                    "edge_corr": None, "mask_change": None}
-            if cli.name == "cosmos" and (not cli.url or consecutive >= BREAKER):
+            if cli.name == "cosmos" and (not cli.url or (not cosmos_attempted and consecutive >= BREAKER)):
                 row.update(skipped=True, reason="COSMOS_URL not set" if not cli.url else
-                           f"skipped after {BREAKER} consecutive failures")
+                           f"skipped after {BREAKER} consecutive failed video requests")
                 counts["skipped"] += 1
                 counts["failed"] += 1
                 rows.append(row)
@@ -369,10 +374,8 @@ def vary_dataset(src: str | Path, dst: str | Path, backend: str = "local_stub", 
                 frame_latency = cosmos_latency_ms if cli.name == "cosmos" and selected_position == 0 else round((time.perf_counter() - t0) * 1000, 2)
                 row.update(latency_ms=frame_latency, reason=str(e))
                 counts["failed"] += 1
-                consecutive += 1
                 rows.append(row)
                 continue
-            consecutive = 0
             row.update(latency_ms=frame_latency, model=cli.model, version=cli.version,
                        parameters={**row["parameters"], **params})
             chk = check_frame(orig, out, mask, edge_min, mask_max)
