@@ -408,6 +408,8 @@ def vary_dataset(src: str | Path, dst: str | Path, backend: str = "local_stub", 
     backend_latency_s = round(sum(r["latency_ms"] or 0 for r in rows) / 1000, 3)
     summary = {"arrival_appearance_variation": label, "backend_requested": backend, "seed": seed,
                "fraction": fraction, "requests": counts.pop("selected"), **counts,
+               "cosmos_video_requests": cosmos_video_requests if cli.name == "cosmos" else 0,
+               "cosmos_video_failures": cosmos_video_failures if cli.name == "cosmos" else 0,
                "cosmos_model": cli.model if cli.name == "cosmos" and cosmos_ok else None,
                "backend_latency_s": backend_latency_s,
                "added_latency_s": round(time.perf_counter() - stage_start, 3), "cost_usd": None,
