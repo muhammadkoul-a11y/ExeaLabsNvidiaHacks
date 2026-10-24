@@ -246,6 +246,21 @@ def test_cosmos_mock_server_pairs_ids_and_label(dataset, tmp_path):
     assert all(r["parameters"]["padding_frames"] == 0 for r in rs)
 
 
+def test_cosmos3_pads_only_below_minimum_and_trims_output():
+    srv = serve_video(lambda frames: frames)
+    source = [np.full((256, 256, 3), i * 20, dtype=np.uint8) for i in range(8)]
+    try:
+        client = variation.CosmosClient(f"http://127.0.0.1:{srv.server_port}", timeout=5, retries=0)
+        output, params = client.transform_video(source, fps=20, seed=7)
+    finally:
+        srv.shutdown()
+        srv.server_close()
+    assert len(output) == len(source)
+    assert params["input_frames"] == 8
+    assert params["inference_frames"] == 25
+    assert params["padding_frames"] == 17
+
+
 def test_cosmos3_transfer_mode_is_explicit_opt_in(dataset, tmp_path):
     srv = serve_video(lambda frames: frames)
     try:
