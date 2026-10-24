@@ -50,7 +50,7 @@ def video(path):
     return imageio.mimread(str(path), memtest=False)
 
 
-def serve_video(handler_fn):
+def serve_video(handler_fn, response_override=None):
     """Mock the JSON video contract used by Cosmos Transfer NIM."""
     class H(http.server.BaseHTTPRequestHandler):
         def do_POST(self):
@@ -66,7 +66,9 @@ def serve_video(handler_fn):
                 source.write_bytes(base64.b64decode(payload["video"]))
                 frames = imageio.mimread(str(source), memtest=False)
                 result_frames = handler_fn(frames)
-                if result_frames is None:
+                if response_override is not None:
+                    response = response_override
+                elif result_frames is None:
                     response = {}
                 else:
                     imageio.mimwrite(str(output), result_frames, format="FFMPEG", fps=20,
@@ -194,6 +196,19 @@ def test_cosmos_invalid_response_is_not_labelled(dataset, tmp_path):
     assert summary["arrival_appearance_variation"] == "none"
     assert summary["failed"] == summary["requests"]
     assert all("missing non-empty b64_video" in row["reason"] for row in rows(tmp_path / "copy"))
+
+
+def test_cosmos_non_object_response_is_reported_as_invalid(dataset, tmp_path):
+    srv = serve_video(lambda frames: frames, response_override=[])
+    try:
+        client = variation.CosmosClient(f"http://127.0.0.1:{srv.server_port}/", timeout=5, retries=0)
+        summary = variation.vary_dataset(dataset, tmp_path / "copy", "cosmos", client=client)
+    finally:
+        srv.shutdown()
+        srv.server_close()
+    assert summary["arrival_appearance_variation"] == "none"
+    assert summary["failed"] == summary["requests"]
+    assert all("response must be a JSON object" in row["reason"] for row in rows(tmp_path / "copy"))
 
 
 def test_cosmos_client_rejects_legacy_single_frame_contract():
