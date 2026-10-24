@@ -51,34 +51,88 @@ def video(path):
 
 
 def serve_video(handler_fn, response_override=None):
-    """Mock the JSON video contract used by Cosmos Transfer NIM."""
+    """Mock the async Cosmos3 Generator /v1/videos contract used by the Nebius endpoint."""
+    jobs = {}
+
     class H(http.server.BaseHTTPRequestHandler):
-        def do_POST(self):
-            payload = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
-            assert isinstance(payload.get("video"), str)
-            assert isinstance(payload.get("edge"), dict)
-            assert isinstance(payload["edge"].get("control"), str)
-            assert payload.get("prompt") and payload.get("resolution") == "480"
-            assert isinstance(payload.get("seed"), int) and 0 <= payload["seed"] < 2**32
-            with tempfile.TemporaryDirectory() as tmp:
-                source = Path(tmp) / "source.mp4"
-                output = Path(tmp) / "output.mp4"
-                source.write_bytes(base64.b64decode(payload["video"]))
-                frames = imageio.mimread(str(source), memtest=False)
-                result_frames = handler_fn(frames)
-                if response_override is not None:
-                    response = response_override
-                elif result_frames is None:
-                    response = {}
-                else:
-                    imageio.mimwrite(str(output), result_frames, format="FFMPEG", fps=20,
-                                     codec="libx264", macro_block_size=None)
-                    response = {"b64_video": base64.b64encode(output.read_bytes()).decode("ascii")}
-            data = json.dumps(response).encode()
+        def _json(self, obj):
+            data = json.dumps(obj).encode()
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
             self.wfile.write(data)
+
+        def do_POST(self):
+            if response_override is not None:
+                self._json(response_override)
+                return
+            content_type = self.headers.get("Content-Type", "")
+            assert "multipart/form-data" in content_type
+            boundary = content_type.split("boundary=", 1)[1].strip('"').encode()
+            raw = self.rfile.read(int(self.headers["Content-Length"]))
+            fields, video_bytes = {}, None
+            for part in raw.split(b"--" + boundary):
+                part = part.strip(b"\r\n")
+                if not part or part == b"--":
+                    continue
+                header, value = part.split(b"\r\n\r\n", 1)
+                match = __import__("re").search(rb'name="([^"]+)"', header)
+                if not match:
+                    continue
+                name = match.group(1).decode()
+                value = value.removesuffix(b"\r\n")
+                if name == "input_reference":
+                    video_bytes = value
+                else:
+                    fields[name] = value.decode()
+            assert video_bytes is not None
+            assert fields.get("model") == "nvidia/Cosmos3-Nano"
+            assert fields.get("prompt")
+            assert fields.get("size") == "640x640"
+            assert int(fields.get("num_frames", "0")) >= 25
+            assert int(fields["num_frames"]) % 8 == 1
+            assert fields.get("resolution") is None  # resolution belongs inside extra_params
+            assert isinstance(json.loads(fields["extra_params"]).get("edge"), bool)
+            extra = json.loads(fields["extra_params"])
+            assert extra["edge"] is True and extra["resolution"] == "480"
+            assert 0 <= int(fields["seed"]) < 2**32
+
+            with tempfile.TemporaryDirectory() as tmp:
+                source = Path(tmp) / "source.mp4"
+                output = Path(tmp) / "output.mp4"
+                source.write_bytes(video_bytes)
+                frames = imageio.mimread(str(source), memtest=False)
+                result_frames = handler_fn(frames)
+                if result_frames is None:
+                    jobs_id = f"job-{len(jobs) + 1}"
+                    jobs[jobs_id] = {"status": "failed", "error": "mock generation failed", "video": None}
+                else:
+                    imageio.mimwrite(str(output), result_frames, format="FFMPEG", fps=20,
+                                     codec="libx264", macro_block_size=None, pixelformat="yuv420p")
+                    jobs_id = f"job-{len(jobs) + 1}"
+                    jobs[jobs_id] = {"status": "completed", "error": None, "video": output.read_bytes()}
+            self._json({"id": jobs_id, "status": "queued"})
+
+        def do_GET(self):
+            parts = self.path.strip("/").split("/")
+            job_id = parts[-2] if parts[-1] == "content" else parts[-1]
+            job = jobs.get(job_id)
+            if job is None:
+                self.send_error(404)
+                return
+            if parts[-1] == "content":
+                if job["status"] != "completed":
+                    self.send_error(409)
+                    return
+                self.send_response(200)
+                self.send_header("Content-Type", "video/mp4")
+                self.end_headers()
+                self.wfile.write(job["video"])
+            else:
+                result = {"id": job_id, "status": job["status"]}
+                if job["error"]:
+                    result["error"] = job["error"]
+                self._json(result)
 
         def log_message(self, *a):
             pass
@@ -86,7 +140,6 @@ def serve_video(handler_fn, response_override=None):
     srv = http.server.HTTPServer(("127.0.0.1", 0), H)
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     return srv
-
 
 def test_selection_deterministic_and_ten_percent():
     a = [variation.select_frames(e, N, 7) for e in range(2)]
@@ -180,7 +233,7 @@ def test_cosmos_mock_server_pairs_ids_and_label(dataset, tmp_path):
     assert s["cosmos_video_requests"] == 2 and s["cosmos_video_failures"] == 0
     assert s["added_latency_s"] >= s["backend_latency_s"] > 0 and s["cost_usd"] is None
     rs = rows(tmp_path / "c")
-    assert all(r["variant_id"] == r["original_id"] + "_v" and r["model"] == "cosmos-transfer2.5"
+    assert all(r["variant_id"] == r["original_id"] + "_v" and r["model"] == "nvidia/Cosmos3-Nano"
                for r in rs)
     assert any(r["latency_ms"] > 0 for r in rs)
 
@@ -195,7 +248,7 @@ def test_cosmos_invalid_response_is_not_labelled(dataset, tmp_path):
         srv.server_close()
     assert summary["arrival_appearance_variation"] == "none"
     assert summary["failed"] == summary["requests"]
-    assert all("missing non-empty b64_video" in row["reason"] for row in rows(tmp_path / "copy"))
+    assert all("mock generation failed" in row["reason"] for row in rows(tmp_path / "copy"))
 
 
 def test_cosmos_non_object_response_is_reported_as_invalid(dataset, tmp_path):
@@ -307,8 +360,8 @@ def test_malformed_backend_result_fails_frames_without_aborting_copy(dataset, tm
 def test_cosmos_rejects_more_than_480_frames_before_network_call():
     client = variation.CosmosClient("http://127.0.0.1:1/v1/infer", retries=0)
     frame = np.zeros((8, 8, 3), dtype=np.uint8)
-    with pytest.raises(ValueError, match="at most 480"):
-        client.transform_video([frame] * 481, fps=20, seed=7)
+    with pytest.raises(ValueError, match="at most 297"):
+        client.transform_video([frame] * 298, fps=20, seed=7)
 
 
 def test_cosmos_rejects_invalid_seed_before_network_call():
