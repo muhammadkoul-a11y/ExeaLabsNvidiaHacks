@@ -14,7 +14,8 @@ The implementing agent does not open these accounts and does not block on them. 
 | Nemotron 3 Nano Omni note | <https://github.com/nebius/token-factory-cookbook/blob/main/models/nemotron/nemotron3-nano-omni.md> | Scan-reading model |
 | Serverless Jobs quickstart | <https://docs.nebius.com/serverless/quickstart/jobs> | Fan-out later |
 | Serverless cookbook | <https://github.com/nebius/serverless-ai-cookbook> | Job and endpoint recipes |
-| Cosmos 3 Generator template | <https://github.com/nebius/serverless-ai-cookbook/tree/main/templates/endpoint-cosmos3-generator> | Off the critical path |
+| Cosmos 3 Generator template | <https://github.com/nebius/serverless-ai-cookbook/tree/main/templates/endpoint-cosmos3-generator> | Target endpoint for video-to-video appearance transfer |
+| NVIDIA Cosmos 3 Generator transfer guide | <https://github.com/NVIDIA/cosmos/tree/main/cookbooks/cosmos3/generator/transfer> | Edge/depth/segmentation controls and transfer parameters |
 | LeRobot fine-tune job | <https://github.com/nebius/serverless-ai-cookbook/tree/main/robotics/lerobot-finetune-job> | Fallback policy if GR00T rejects the embodiment |
 | Isaac GR00T | <https://github.com/NVIDIA/Isaac-GR00T> | N1.7 code, Apache 2.0 |
 | GR00T hardware note | <https://github.com/NVIDIA/Isaac-GR00T/blob/main/getting_started/hardware_recommendation.md> | Fine-tune wants 40 GB+ VRAM |
@@ -25,6 +26,12 @@ The implementing agent does not open these accounts and does not block on them. 
 | MimicGen guide | <https://github.com/robocasa/robocasa/blob/main/docs/use_cases/mimicgen.md> | `PnPCounterToSink` template path |
 | Layout example | <https://github.com/robocasa/robocasa/blob/main/robocasa/models/assets/scenes/kitchen_layouts/train/layout011.yaml> | Full layout the subset emitter is aiming at |
 | Tavily Search API | <https://tavily.com/> | Appliance manual and safety clearance research ($3,000 sponsor prize) |
+
+## Cosmos choice for appearance variation
+
+The repository's SIM-7 scope names the **Cosmos 3 Generator endpoint**, so this branch now targets the Nebius [Cosmos 3 Generator template](https://github.com/nebius/serverless-ai-cookbook/tree/main/templates/endpoint-cosmos3-generator), not the separate Cosmos Transfer 2.5 NIM API. The template serves Cosmos3-Nano through vLLM-Omni. Its video API is asynchronous: `POST /v1/videos`, poll `GET /v1/videos/{id}`, then download `GET /v1/videos/{id}/content`. Basic V2V is the default until the team's exact deployment is verified. NVIDIA's current vLLM-Omni recipe lists a transfer-hint resolution-parsing bug for NPU builds; the Nebius template is GPU-oriented, so this is a conservative default rather than a confirmed limitation of the team's endpoint. The client keeps model guardrails enabled and can opt into derived-edge transfer with `COSMOS_TRANSFER_ENABLED=true` after the exact endpoint is tested; do not send the older Transfer 2.5 `/v1/infer` JSON contract to this endpoint. See NVIDIA's [Cosmos3 transfer cookbook](https://github.com/NVIDIA/cosmos/tree/main/cookbooks/cosmos3/generator/transfer) and Nebius template's endpoint README.
+
+Configure `COSMOS_URL` as the **base HTTPS endpoint URL** from the Nebius console (not a `/v1/infer` URL). Configure `COSMOS_API_KEY` with the endpoint's bearer token only if authentication is enabled. Do not commit credentials. The template deploys Cosmos3-Nano on an H100-class preset; confirm the team's actual endpoint URL, auth setting, quota, and model readiness before running paid inference. No live endpoint is recorded in this repository, so live inference remains a separate validation step.
 
 ## What to request
 
