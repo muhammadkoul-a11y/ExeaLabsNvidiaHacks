@@ -244,6 +244,8 @@ class CosmosClient:
                 try:
                     with urllib.request.urlopen(req, timeout=self.timeout) as response:
                         result = json.loads(response.read().decode("utf-8"))
+                    if not isinstance(result, dict):
+                        raise ValueError("Cosmos Transfer response must be a JSON object")
                     encoded = result.get("b64_video")
                     if not isinstance(encoded, str) or not encoded:
                         raise ValueError("Cosmos Transfer response is missing non-empty b64_video")
@@ -274,7 +276,7 @@ class CosmosClient:
                         "padding_frames": len(inference_frames) - original_frame_count,
                         "attempts": attempt + 1, "requested_seed": seed, "seed": result.get("seed"),
                     }
-                except (urllib.error.URLError, OSError, ValueError, KeyError, json.JSONDecodeError) as e:
+                except Exception as e:  # noqa: BLE001 - retry transport, decoding, and malformed-response failures
                     last = e
             raise RuntimeError(f"Cosmos Transfer request failed after {self.retries + 1} attempts: {last}")
 
