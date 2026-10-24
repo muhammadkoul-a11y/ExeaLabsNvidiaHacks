@@ -382,7 +382,7 @@ def test_cosmos3_rejects_more_than_297_frames_before_network_call():
 
 
 def test_cosmos_rejects_invalid_seed_before_network_call():
-    client = variation.CosmosClient("http://127.0.0.1:1/v1/infer", retries=0)
+    client = variation.CosmosClient("http://127.0.0.1:1", retries=0)
     frame = np.zeros((8, 8, 3), dtype=np.uint8)
     with pytest.raises(ValueError, match="seed"):
         client.transform_video([frame], fps=20, seed=-1)
