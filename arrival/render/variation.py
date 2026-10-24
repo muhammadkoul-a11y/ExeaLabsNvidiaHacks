@@ -270,10 +270,10 @@ class CosmosClient:
                     "max_frames": inference_count,
                 })
             else:
-                # Basic V2V avoids the known transfer-hint path and conditions on each
-                # available latent frame to help preserve the full episode's structure.
+                # Follow the documented V2V default: preserve the first two latent frames
+                # as anchors, while allowing the rest of the episode to be restyled.
                 extra_params.update({
-                    "condition_frame_indexes_vision": list(range((inference_count - 1) // 4 + 1)),
+                    "condition_frame_indexes_vision": [0, 1],
                     "condition_video_keep": "first",
                 })
             fields = {
