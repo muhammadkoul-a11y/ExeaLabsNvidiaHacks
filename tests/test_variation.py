@@ -241,7 +241,7 @@ def test_cosmos_mock_server_pairs_ids_and_label(dataset, tmp_path):
                for r in rs)
     assert any(r["latency_ms"] > 0 for r in rs)
     assert all(r["parameters"]["control"] == "basic_v2v" for r in rs)
-    assert all(r["parameters"]["control_weight"] is None for r in rs)
+    assert all(r["parameters"]["control_guidance"] is None for r in rs)
     assert all(r["parameters"]["inference_frames"] == N for r in rs)
     assert all(r["parameters"]["padding_frames"] == 0 for r in rs)
 
@@ -273,7 +273,7 @@ def test_cosmos3_transfer_mode_is_explicit_opt_in(dataset, tmp_path):
     assert summary["cosmos_video_requests"] == 2
     assert summary["cosmos_video_failures"] == 0
     assert all(row["parameters"]["control"] == "edge_derived" for row in rows(tmp_path / "transfer"))
-    assert all(row["parameters"]["control_weight"] == 1.5 for row in rows(tmp_path / "transfer"))
+    assert all(row["parameters"]["control_guidance"] == 1.5 for row in rows(tmp_path / "transfer"))
 
 
 def test_cosmos_invalid_response_is_not_labelled(dataset, tmp_path):
