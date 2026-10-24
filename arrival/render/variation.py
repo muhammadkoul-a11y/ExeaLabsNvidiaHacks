@@ -158,7 +158,8 @@ class CosmosClient:
 
     def __init__(self, url: str | None = None, timeout: float = 1800.0, retries: int = 1, backoff: float = 1.0,
                  prompt: str = "Restyle the scene with realistic lighting and surface materials. Preserve the exact scene layout, camera view, robot and object positions, and all task-relevant geometry.",
-                 resolution: str = "480", control_weight: float = 1.5, poll_interval: float = 5.0):
+                 resolution: str = "480", control_weight: float = 1.5, poll_interval: float = 5.0,
+                 transfer_enabled: bool | None = None):
         from arrival import config as settings
 
         self.url = (url if url is not None else settings.get("COSMOS_URL") or "").rstrip("/")
@@ -166,6 +167,9 @@ class CosmosClient:
         self.timeout, self.retries, self.backoff = timeout, retries, backoff
         self.prompt, self.resolution, self.control_weight = prompt, resolution, control_weight
         self.poll_interval = poll_interval
+        configured_transfer = settings.get("COSMOS_TRANSFER_ENABLED")
+        self.transfer_enabled = (str(configured_transfer or "").strip().lower() in {"1", "true", "yes", "on"}
+                                 if transfer_enabled is None else transfer_enabled)
 
     @staticmethod
     def _write_video(path: Path, frames: list[np.ndarray], fps: float) -> None:
@@ -251,15 +255,27 @@ class CosmosClient:
             self._write_video(source_path, inference_frames, float(fps))
             source_bytes = source_path.read_bytes()
             extra_params = {
-                "edge": True,
-                "resolution": self.resolution,
-                "control_guidance": self.control_weight,
-                "num_video_frames_per_chunk": inference_count,
-                "max_frames": inference_count,
                 "use_resolution_template": False,
                 "use_duration_template": False,
                 "guardrails": False,
             }
+            if self.transfer_enabled:
+                # Transfer V2V currently has a known resolution-parsing issue in some
+                # vLLM-Omni Cosmos3 builds. Enable only for an endpoint tested with it.
+                extra_params.update({
+                    "edge": True,
+                    "resolution": self.resolution,
+                    "control_guidance": self.control_weight,
+                    "num_video_frames_per_chunk": inference_count,
+                    "max_frames": inference_count,
+                })
+            else:
+                # Basic V2V avoids the known transfer-hint path and conditions on each
+                # available latent frame to help preserve the full episode's structure.
+                extra_params.update({
+                    "condition_frame_indexes_vision": list(range((inference_count - 1) // 4 + 1)),
+                    "condition_video_keep": "first",
+                })
             fields = {
                 "model": self.model,
                 "prompt": self.prompt,
