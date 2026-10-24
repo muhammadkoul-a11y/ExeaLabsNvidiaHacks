@@ -1,9 +1,6 @@
 name: Cosmos variation checks
 
 on:
-  push:
-    branches:
-      - feat/cosmos-transfer-nim
   pull_request:
     branches:
       - main
