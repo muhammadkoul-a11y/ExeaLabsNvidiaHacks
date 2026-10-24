@@ -14,7 +14,9 @@ The implementing agent does not open these accounts and does not block on them. 
 | Nemotron 3 Nano Omni note | <https://github.com/nebius/token-factory-cookbook/blob/main/models/nemotron/nemotron3-nano-omni.md> | Scan-reading model |
 | Serverless Jobs quickstart | <https://docs.nebius.com/serverless/quickstart/jobs> | Fan-out later |
 | Serverless cookbook | <https://github.com/nebius/serverless-ai-cookbook> | Job and endpoint recipes |
-| Cosmos 3 Generator template | <https://github.com/nebius/serverless-ai-cookbook/tree/main/templates/endpoint-cosmos3-generator> | Off the critical path |
+| Cosmos 3 Generator template | <https://github.com/nebius/serverless-ai-cookbook/tree/main/templates/endpoint-cosmos3-generator> | A different model/API path; not a drop-in endpoint for Transfer 2.5 |
+| NVIDIA Cosmos Transfer 2.5 NIM API reference (version 3.0.0 docs) | <https://docs.nvidia.com/nim/cosmos/3.0.0/api-reference.html> | Transfer 2.5 request fields, controls, input frame limits, and response format |
+| NVIDIA Cosmos Transfer 2.5 NIM quickstart | <https://docs.nvidia.com/nim/cosmos/3.0.0/quickstart-guide.html> | Example deployment and inference request |
 | LeRobot fine-tune job | <https://github.com/nebius/serverless-ai-cookbook/tree/main/robotics/lerobot-finetune-job> | Fallback policy if GR00T rejects the embodiment |
 | Isaac GR00T | <https://github.com/NVIDIA/Isaac-GR00T> | N1.7 code, Apache 2.0 |
 | GR00T hardware note | <https://github.com/NVIDIA/Isaac-GR00T/blob/main/getting_started/hardware_recommendation.md> | Fine-tune wants 40 GB+ VRAM |
@@ -25,6 +27,12 @@ The implementing agent does not open these accounts and does not block on them. 
 | MimicGen guide | <https://github.com/robocasa/robocasa/blob/main/docs/use_cases/mimicgen.md> | `PnPCounterToSink` template path |
 | Layout example | <https://github.com/robocasa/robocasa/blob/main/robocasa/models/assets/scenes/kitchen_layouts/train/layout011.yaml> | Full layout the subset emitter is aiming at |
 | Tavily Search API | <https://tavily.com/> | Appliance manual and safety clearance research ($3,000 sponsor prize) |
+
+## Cosmos choice for appearance variation
+
+The current appearance-variation branch targets **Cosmos Transfer 2.5 NIM**, using the older Transfer 2.5 contract documented in NVIDIA's versioned 3.0.0 API docs: `POST /v1/infer` with `prompt`, `video`, `resolution`, and at least one control video (this implementation uses `edge`). It expects `b64_video` in the JSON response. This is a deliberate choice for video appearance transfer; the Cosmos 3 Generator template above uses a different model and request contract, so it should not be substituted without changing and retesting the client.
+
+To run this integration, the team must deploy or obtain access to a **Cosmos Transfer 2.5 NIM endpoint** and configure `COSMOS_URL` to its full `/v1/infer` URL. Configure `COSMOS_API_KEY` only if the chosen hosted service requires bearer authentication; local NIM deployments may not require it. Do not commit credentials. The repository does not currently record a team's deployed endpoint, so a successful live inference remains a separate validation step.
 
 ## What to request
 
