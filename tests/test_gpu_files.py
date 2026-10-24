@@ -1,4 +1,5 @@
 import re
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -14,6 +15,9 @@ def test_files_and_targets_exist():
 
 
 def test_script_parses():
+    if shutil.which("bash") is None:
+        import pytest
+        pytest.skip("bash is not installed on this runner")
     subprocess.run(["bash", "-n", str(SCRIPT)], check=True)
 
 
