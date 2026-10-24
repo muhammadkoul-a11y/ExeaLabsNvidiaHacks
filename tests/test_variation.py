@@ -256,7 +256,7 @@ def test_cosmos3_pads_only_below_minimum_and_trims_output():
         srv.shutdown()
         srv.server_close()
     assert len(output) == len(source)
-    assert params["input_frames"] == 8
+    assert params["input_frames"] == 3
     assert params["inference_frames"] == 5
     assert params["padding_frames"] == 2
 
