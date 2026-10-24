@@ -302,3 +302,17 @@ def test_malformed_backend_result_fails_frames_without_aborting_copy(dataset, tm
     assert summary["ok"] == 0
     assert all(row["status"] == "failed" and row["reason"] for row in rows(dst))
     assert validate(dst) == []
+
+
+def test_cosmos_rejects_more_than_480_frames_before_network_call():
+    client = variation.CosmosClient("http://127.0.0.1:1/v1/infer", retries=0)
+    frame = np.zeros((8, 8, 3), dtype=np.uint8)
+    with pytest.raises(ValueError, match="at most 480"):
+        client.transform_video([frame] * 481, fps=20, seed=7)
+
+
+def test_cosmos_rejects_invalid_seed_before_network_call():
+    client = variation.CosmosClient("http://127.0.0.1:1/v1/infer", retries=0)
+    frame = np.zeros((8, 8, 3), dtype=np.uint8)
+    with pytest.raises(ValueError, match="seed"):
+        client.transform_video([frame], fps=20, seed=-1)
