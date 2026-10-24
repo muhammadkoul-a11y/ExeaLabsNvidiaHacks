@@ -91,10 +91,14 @@ def serve_video(handler_fn, response_override=None):
             assert fields.get("size") == "640x640"
             assert int(fields.get("num_frames", "0")) >= 25
             assert int(fields["num_frames"]) % 8 == 1
-            assert fields.get("resolution") is None  # resolution belongs inside extra_params
-            assert isinstance(json.loads(fields["extra_params"]).get("edge"), bool)
+            assert fields.get("resolution") is None  # resolution belongs inside extra_params for transfer
             extra = json.loads(fields["extra_params"])
-            assert extra["edge"] is True and extra["resolution"] == "480"
+            if extra.get("edge") is True:
+                assert extra["resolution"] == "480"
+                assert extra["num_video_frames_per_chunk"] == int(fields["num_frames"])
+            else:
+                assert extra["condition_video_keep"] == "first"
+                assert extra["condition_frame_indexes_vision"] == list(range((int(fields["num_frames"]) - 1) // 4 + 1))
             assert 0 <= int(fields["seed"]) < 2**32
 
             with tempfile.TemporaryDirectory() as tmp:
@@ -236,6 +240,19 @@ def test_cosmos_mock_server_pairs_ids_and_label(dataset, tmp_path):
     assert all(r["variant_id"] == r["original_id"] + "_v" and r["model"] == "nvidia/Cosmos3-Nano"
                for r in rs)
     assert any(r["latency_ms"] > 0 for r in rs)
+
+
+def test_cosmos3_transfer_mode_is_explicit_opt_in(dataset, tmp_path):
+    srv = serve_video(lambda frames: frames)
+    try:
+        client = variation.CosmosClient(
+            f"http://127.0.0.1:{srv.server_port}", timeout=5, retries=0, transfer_enabled=True)
+        summary = variation.vary_dataset(dataset, tmp_path / "transfer", "cosmos", client=client)
+    finally:
+        srv.shutdown()
+        srv.server_close()
+    assert summary["cosmos_video_requests"] == 2
+    assert summary["cosmos_video_failures"] == 0
 
 
 def test_cosmos_invalid_response_is_not_labelled(dataset, tmp_path):
