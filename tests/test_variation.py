@@ -88,7 +88,7 @@ def serve_video(handler_fn, response_override=None):
             assert fields.get("model") == "nvidia/Cosmos3-Nano"
             assert fields.get("prompt")
             assert fields.get("size") == "640x640"
-            assert 25 <= int(fields.get("num_frames", "0")) <= 297
+            assert 5 <= int(fields.get("num_frames", "0")) <= 300
             assert fields.get("resolution") is None  # resolution belongs inside extra_params for transfer
             extra = json.loads(fields["extra_params"])
             assert extra["guardrails"] is True
@@ -248,7 +248,7 @@ def test_cosmos_mock_server_pairs_ids_and_label(dataset, tmp_path):
 
 def test_cosmos3_pads_only_below_minimum_and_trims_output():
     srv = serve_video(lambda frames: frames)
-    source = [np.full((256, 256, 3), i * 20, dtype=np.uint8) for i in range(8)]
+    source = [np.full((256, 256, 3), i * 60, dtype=np.uint8) for i in range(3)]
     try:
         client = variation.CosmosClient(f"http://127.0.0.1:{srv.server_port}", timeout=5, retries=0)
         output, params = client.transform_video(source, fps=20, seed=7)
@@ -257,8 +257,8 @@ def test_cosmos3_pads_only_below_minimum_and_trims_output():
         srv.server_close()
     assert len(output) == len(source)
     assert params["input_frames"] == 8
-    assert params["inference_frames"] == 25
-    assert params["padding_frames"] == 17
+    assert params["inference_frames"] == 5
+    assert params["padding_frames"] == 2
 
 
 def test_cosmos3_transfer_mode_is_explicit_opt_in(dataset, tmp_path):
@@ -395,11 +395,11 @@ def test_malformed_backend_result_fails_frames_without_aborting_copy(dataset, tm
     assert validate(dst) == []
 
 
-def test_cosmos3_rejects_more_than_297_frames_before_network_call():
+def test_cosmos3_rejects_more_than_300_frames_before_network_call():
     client = variation.CosmosClient("http://127.0.0.1:1", retries=0)
     frame = np.zeros((8, 8, 3), dtype=np.uint8)
-    with pytest.raises(ValueError, match="at most 297"):
-        client.transform_video([frame] * 298, fps=20, seed=7)
+    with pytest.raises(ValueError, match="at most 300"):
+        client.transform_video([frame] * 301, fps=20, seed=7)
 
 
 def test_cosmos_rejects_invalid_seed_before_network_call():
