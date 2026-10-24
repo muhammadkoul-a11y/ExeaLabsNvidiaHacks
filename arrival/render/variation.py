@@ -352,7 +352,8 @@ class CosmosClient:
                     return normalized[:original_frame_count], {
                         "prompt": self.prompt, "request_scope": "episode_video",
                         "model": self.model, "version": self.version, "resolution": self.resolution,
-                        "control": "edge_derived", "control_weight": self.control_weight,
+                        "control": "edge_derived" if self.transfer_enabled else "basic_v2v",
+                        "control_weight": self.control_weight if self.transfer_enabled else None,
                         "input_frames": original_frame_count, "inference_frames": inference_count,
                         "output_frames": original_frame_count, "padding_frames": inference_count - original_frame_count,
                         "attempts": attempt + 1, "requested_seed": seed if seed is not None else 0,
