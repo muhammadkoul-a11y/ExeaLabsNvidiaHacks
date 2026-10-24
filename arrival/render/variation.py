@@ -143,30 +143,31 @@ class LocalStub:
 
 
 class CosmosClient:
-    """Client for NVIDIA Cosmos Transfer 2.5 NIM's video-to-video API.
+    """Client for the Cosmos 3 Generator video API used by the Nebius vLLM-Omni endpoint.
 
-    COSMOS_URL must point to the deployed NIM /v1/infer endpoint. Transfer requires
-    a source video plus at least one control video and returns JSON containing
-    b64_video; it is not a per-frame PNG endpoint. This client processes one
-    episode video at a time so temporal context and edge controls stay aligned.
+    COSMOS_URL is the endpoint base URL, not an /v1/infer URL. The client uploads
+    an episode to POST /v1/videos, requests derived edge transfer, polls the job,
+    and downloads the MP4 from /content. A local mock validates the protocol;
+    it does not prove that the hosted endpoint is reachable.
     """
 
     name = "cosmos"
-    model = "cosmos-transfer2.5"
-    version = "nim-v1"
+    model = "nvidia/Cosmos3-Nano"
+    version = "vllm-omni-videos-api"
 
     def __init__(self, url: str | None = None, timeout: float = 1800.0, retries: int = 1, backoff: float = 1.0,
-                 prompt: str = "Preserve the scene layout and all object positions. Vary only lighting, materials, and surface appearance.",
-                 resolution: str = "480", control_weight: float = 1.0):
+                 prompt: str = "Restyle the scene with realistic lighting and surface materials. Preserve the exact scene layout, camera view, robot and object positions, and all task-relevant geometry.",
+                 resolution: str = "480", control_weight: float = 1.5, poll_interval: float = 5.0):
         from arrival import config as settings
 
-        self.url = url if url is not None else settings.get("COSMOS_URL")
+        self.url = (url if url is not None else settings.get("COSMOS_URL") or "").rstrip("/")
         self.api_key = settings.get("COSMOS_API_KEY")
         self.timeout, self.retries, self.backoff = timeout, retries, backoff
         self.prompt, self.resolution, self.control_weight = prompt, resolution, control_weight
+        self.poll_interval = poll_interval
 
     @staticmethod
-    def _write_video(path: Path, frames: list[np.ndarray], fps: int) -> None:
+    def _write_video(path: Path, frames: list[np.ndarray], fps: float) -> None:
         import imageio.v2 as imageio
 
         with imageio.get_writer(str(path), format="FFMPEG", fps=fps, codec="libx264",
@@ -175,14 +176,37 @@ class CosmosClient:
                 writer.append_data(np.asarray(frame, dtype=np.uint8))
 
     @staticmethod
-    def _read_video_bytes(path: Path) -> str:
-        import base64
+    def _size_for_shape(height: int, width: int) -> str:
+        """Choose the 480-tier Cosmos3 output bucket matching the input aspect ratio."""
+        ratio = width / height
+        buckets = [
+            (16 / 9, "832x480"),
+            (1.0, "640x640"),
+            (9 / 16, "480x832"),
+            (4 / 3, "736x544"),
+            (3 / 4, "544x736"),
+        ]
+        target, size = min(buckets, key=lambda item: abs(math.log(ratio / item[0])))
+        if abs(math.log(ratio / target)) > 0.12:
+            raise ValueError(f"input aspect ratio {width}:{height} is not close to a supported Cosmos3 480-tier bucket")
+        return size
 
-        return base64.b64encode(path.read_bytes()).decode("ascii")
+    @staticmethod
+    def _multipart(fields: dict[str, str], video_bytes: bytes) -> tuple[bytes, str]:
+        import uuid
 
-    def transform_video(self, frames: list[np.ndarray], fps: int, seed: int | None = None) -> tuple[list[np.ndarray], dict]:
-        """Send a complete episode and its edge-map control to Transfer NIM; return decoded RGB frames."""
-        import base64
+        boundary = "----arrival-cosmos3-" + uuid.uuid4().hex
+        chunks: list[bytes] = []
+        for name, value in fields.items():
+            chunks.append((f"--{boundary}\r\nContent-Disposition: form-data; name=\"{name}\"\r\n\r\n{value}\r\n").encode())
+        chunks.append((f"--{boundary}\r\nContent-Disposition: form-data; name=\"input_reference\"; filename=\"episode.mp4\"\r\nContent-Type: video/mp4\r\n\r\n").encode())
+        chunks.append(video_bytes)
+        chunks.append(b"\r\n")
+        chunks.append(f"--{boundary}--\r\n".encode())
+        return b"".join(chunks), boundary
+
+    def transform_video(self, frames: list[np.ndarray], fps: int | float, seed: int | None = None) -> tuple[list[np.ndarray], dict]:
+        """Upload one episode to Cosmos3 video-to-video transfer and return decoded RGB frames."""
         import tempfile
         from PIL import Image
         import imageio.v2 as imageio
@@ -190,73 +214,115 @@ class CosmosClient:
         if not self.url:
             raise RuntimeError("COSMOS_URL is not set")
         if not frames:
-            return [], {"prompt": self.prompt, "request_scope": "video"}
-        if len(frames) > 480:
-            raise ValueError("Cosmos Transfer accepts at most 480 input frames per request; split longer episodes into chunks")
+            return [], {"prompt": self.prompt, "request_scope": "episode_video"}
         original_frame_count = len(frames)
-        if type(fps) is not int or fps < 1:
-            raise ValueError("fps must be a positive integer")
+        if original_frame_count > 297:
+            raise ValueError("Cosmos3 resolution 480 supports at most 297 frames per request; chunking is not implemented")
+        if type(fps) not in (int, float) or isinstance(fps, bool) or not math.isfinite(fps) or fps < 1:
+            raise ValueError("fps must be a finite positive number")
         first = np.asarray(frames[0])
         if first.dtype != np.uint8 or first.ndim != 3 or first.shape[2] != 3:
-            raise ValueError("Cosmos Transfer expects uint8 RGB frames")
+            raise ValueError("Cosmos3 expects uint8 RGB frames")
         if any(np.asarray(frame).shape != first.shape or np.asarray(frame).dtype != np.uint8 for frame in frames):
             raise ValueError("all episode frames must have the same uint8 RGB shape")
         if first.shape[0] % 8 or first.shape[1] % 8:
-            raise ValueError("Cosmos Transfer requires input frame height and width to be multiples of 8")
+            raise ValueError("Cosmos3 input frame height and width must be multiples of 8")
         if seed is not None and (type(seed) is not int or not 0 <= seed < 2**32):
-            raise ValueError("seed must be an integer between 0 and 2**32 - 1")
+            raise ValueError("seed must be a non-negative 32-bit integer")
+        if self.resolution != "480":
+            raise ValueError("this client currently supports only the Cosmos3 480 resolution tier")
+        if not math.isfinite(self.control_weight) or not 0 <= self.control_weight <= 10:
+            raise ValueError("control_weight must be finite and between 0 and 10")
+        if self.timeout <= 0 or self.poll_interval <= 0:
+            raise ValueError("timeout and poll_interval must be positive")
 
-        # Transfer 2.5 documents 93-480 input frames. Pad short episodes by repeating the
-        # final frame, then trim generated padding so dataset timing and frame count stay intact.
-        inference_frames = frames + [frames[-1]] * max(0, 93 - len(frames))
-        # Transfer NIM expects a source video plus a matching control video, not PNG bytes.
-        # Use edge maps as a structural control to discourage geometry changes.
-        edges = []
-        for frame in inference_frames:
-            edge = np.clip(edge_map(np.asarray(frame)), 0, 255).astype(np.uint8)
-            edges.append(np.repeat(edge[..., None], 3, axis=2))
+        # Cosmos3 video generation expects frame counts of 8n+1. Pad short or
+        # misaligned episodes by repeating the final frame, then trim the output.
+        inference_count = max(25, original_frame_count + ((1 - original_frame_count) % 8))
+        if inference_count > 297:
+            raise ValueError("padding to a valid Cosmos3 frame count would exceed the 297-frame limit")
+        inference_frames = frames + [frames[-1]] * (inference_count - original_frame_count)
+        size = self._size_for_shape(first.shape[0], first.shape[1])
 
-        with tempfile.TemporaryDirectory(prefix="arrival-cosmos-") as tmp:
+        with tempfile.TemporaryDirectory(prefix="arrival-cosmos3-") as tmp:
             root = Path(tmp)
-            source_path, control_path, output_path = root / "source.mp4", root / "edge.mp4", root / "output.mp4"
-            self._write_video(source_path, inference_frames, fps)
-            self._write_video(control_path, edges, fps)
-            payload = {
-                "prompt": self.prompt,
-                "video": self._read_video_bytes(source_path),
+            source_path, output_path = root / "source.mp4", root / "output.mp4"
+            self._write_video(source_path, inference_frames, float(fps))
+            source_bytes = source_path.read_bytes()
+            extra_params = {
+                "edge": True,
                 "resolution": self.resolution,
-                "edge": {
-                    "control_weight": self.control_weight,
-                    "control": self._read_video_bytes(control_path),
-                },
+                "control_guidance": self.control_weight,
+                "num_video_frames_per_chunk": inference_count,
+                "max_frames": inference_count,
+                "use_resolution_template": False,
+                "use_duration_template": False,
+                "guardrails": False,
             }
-            if seed is not None:
-                payload["seed"] = seed
-            body = json.dumps(payload).encode("utf-8")
+            fields = {
+                "model": self.model,
+                "prompt": self.prompt,
+                "negative_prompt": "blurry, distorted, low quality, changed object positions, altered robot geometry",
+                "size": size,
+                "num_frames": str(inference_count),
+                "fps": str(float(fps)),
+                "num_inference_steps": "50",
+                "guidance_scale": "3.0",
+                "flow_shift": "10.0",
+                "seed": str(seed if seed is not None else 0),
+                "extra_params": json.dumps(extra_params, separators=(",", ":")),
+            }
+            body, boundary = self._multipart(fields, source_bytes)
+            headers = {"Content-Type": f"multipart/form-data; boundary={boundary}", "Accept": "application/json"}
+            if self.api_key:
+                headers["Authorization"] = f"Bearer {self.api_key}"
+
             last: Exception | None = None
             for attempt in range(self.retries + 1):
                 if attempt:
                     time.sleep(self.backoff * attempt)
-                headers = {"Content-Type": "application/json", "Accept": "application/json"}
-                if self.api_key:
-                    headers["Authorization"] = f"Bearer {self.api_key}"
-                req = urllib.request.Request(self.url, data=body, method="POST", headers=headers)
                 try:
-                    with urllib.request.urlopen(req, timeout=self.timeout) as response:
-                        result = json.loads(response.read().decode("utf-8"))
-                    if not isinstance(result, dict):
-                        raise ValueError("Cosmos Transfer response must be a JSON object")
-                    encoded = result.get("b64_video")
-                    if not isinstance(encoded, str) or not encoded:
-                        raise ValueError("Cosmos Transfer response is missing non-empty b64_video")
-                    try:
-                        output_path.write_bytes(base64.b64decode(encoded, validate=True))
-                    except (ValueError, base64.binascii.Error) as e:
-                        raise ValueError("Cosmos Transfer returned invalid base64 video data") from e
+                    create_req = urllib.request.Request(
+                        self.url + "/v1/videos", data=body, method="POST", headers=headers)
+                    with urllib.request.urlopen(create_req, timeout=min(self.timeout, 120.0)) as response:
+                        job = json.loads(response.read().decode("utf-8"))
+                    if not isinstance(job, dict):
+                        raise ValueError("Cosmos3 Generator job response must be a JSON object")
+                    job_id = job.get("id")
+                    if not isinstance(job_id, str) or not job_id:
+                        raise ValueError("Cosmos3 Generator response is missing a job id")
+
+                    deadline = time.monotonic() + self.timeout
+                    while True:
+                        remaining = deadline - time.monotonic()
+                        if remaining <= 0:
+                            raise TimeoutError(f"Cosmos3 Generator job {job_id} timed out after {self.timeout:g}s")
+                        status_req = urllib.request.Request(
+                            self.url + "/v1/videos/" + urllib.parse.quote(job_id, safe=""),
+                            headers={"Accept": "application/json", **({"Authorization": f"Bearer {self.api_key}"} if self.api_key else {})})
+                        with urllib.request.urlopen(status_req, timeout=min(30.0, remaining)) as response:
+                            status_body = json.loads(response.read().decode("utf-8"))
+                        if not isinstance(status_body, dict):
+                            raise ValueError("Cosmos3 Generator job status must be a JSON object")
+                        status = status_body.get("status")
+                        if status == "completed":
+                            break
+                        if status == "failed":
+                            detail = status_body.get("error") or status_body.get("message") or "no error detail provided"
+                            raise RuntimeError(f"Cosmos3 Generator job failed: {detail}")
+                        if status not in ("queued", "in_progress"):
+                            raise ValueError(f"Cosmos3 Generator returned unexpected job status {status!r}")
+                        time.sleep(min(self.poll_interval, max(0.0, deadline - time.monotonic())))
+
+                    content_req = urllib.request.Request(
+                        self.url + "/v1/videos/" + urllib.parse.quote(job_id, safe="") + "/content",
+                        headers={"Accept": "video/mp4", **({"Authorization": f"Bearer {self.api_key}"} if self.api_key else {})})
+                    with urllib.request.urlopen(content_req, timeout=min(120.0, max(1.0, deadline - time.monotonic()))) as response:
+                        output_path.write_bytes(response.read())
                     with imageio.get_reader(str(output_path), format="FFMPEG") as reader:
                         output_frames = [np.asarray(frame) for frame in reader]
-                    if len(output_frames) != len(inference_frames):
-                        raise ValueError(f"Cosmos Transfer returned {len(output_frames)} frames; expected {len(inference_frames)}")
+                    if len(output_frames) != inference_count:
+                        raise ValueError(f"Cosmos3 Generator returned {len(output_frames)} frames; expected {inference_count}")
                     height, width = first.shape[:2]
                     normalized = []
                     for output in output_frames:
@@ -264,24 +330,23 @@ class CosmosClient:
                             raise ValueError(f"expected uint8 RGB output frames, got {output.dtype} {output.shape}")
                         rgb = output[..., :3]
                         if rgb.shape[:2] != (height, width):
-                            # NIM may return its configured resolution; resize back to dataset dimensions
-                            # before geometry checks and insertion into the copied dataset.
                             rgb = np.asarray(Image.fromarray(rgb).resize((width, height), Image.Resampling.LANCZOS))
                         normalized.append(rgb)
                     return normalized[:original_frame_count], {
                         "prompt": self.prompt, "request_scope": "episode_video",
-                        "resolution": self.resolution, "control": "edge",
-                        "control_weight": self.control_weight, "input_frames": original_frame_count,
-                        "inference_frames": len(inference_frames), "output_frames": original_frame_count,
-                        "padding_frames": len(inference_frames) - original_frame_count,
-                        "attempts": attempt + 1, "requested_seed": seed, "seed": result.get("seed"),
+                        "model": self.model, "version": self.version, "resolution": self.resolution,
+                        "control": "edge_derived", "control_weight": self.control_weight,
+                        "input_frames": original_frame_count, "inference_frames": inference_count,
+                        "output_frames": original_frame_count, "padding_frames": inference_count - original_frame_count,
+                        "attempts": attempt + 1, "requested_seed": seed if seed is not None else 0,
+                        "size": size, "job_id": job_id,
                     }
-                except Exception as e:  # noqa: BLE001 - retry transport, decoding, and malformed-response failures
+                except Exception as e:  # noqa: BLE001 - retry transport, job, and malformed-response failures
                     last = e
-            raise RuntimeError(f"Cosmos Transfer request failed after {self.retries + 1} attempts: {last}")
+            raise RuntimeError(f"Cosmos3 Generator request failed after {self.retries + 1} attempts: {last}")
 
     def __call__(self, frame: np.ndarray, episode_index: int, frame_index: int) -> tuple[np.ndarray, dict]:
-        raise RuntimeError("Cosmos Transfer is video-based; call transform_video() with the full episode")
+        raise RuntimeError("Cosmos3 Generator is video-based; call transform_video() with the full episode")
 
 def _read_video(path: Path) -> list[np.ndarray]:
     import imageio.v2 as imageio
