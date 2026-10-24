@@ -221,8 +221,8 @@ class CosmosClient:
         if not frames:
             return [], {"prompt": self.prompt, "request_scope": "episode_video"}
         original_frame_count = len(frames)
-        if original_frame_count > 297:
-            raise ValueError("Cosmos3 resolution 480 supports at most 297 frames per request; chunking is not implemented")
+        if original_frame_count > 300:
+            raise ValueError("Cosmos3 supports at most 300 frames per request; chunking is not implemented")
         if type(fps) not in (int, float) or isinstance(fps, bool) or not math.isfinite(fps) or fps < 1:
             raise ValueError("fps must be a finite positive number")
         first = np.asarray(frames[0])
@@ -243,9 +243,9 @@ class CosmosClient:
 
         # Cosmos3 accepts 25..297 requested frames and handles its internal temporal
         # alignment itself. Pad only clips shorter than the minimum; trim that padding.
-        inference_count = max(25, original_frame_count)
-        if inference_count > 297:
-            raise ValueError("padding to the 25-frame minimum would exceed the 297-frame limit")
+        inference_count = max(5, original_frame_count)
+        if inference_count > 300:
+            raise ValueError("padding to the 5-frame minimum would exceed the 300-frame limit")
         inference_frames = frames + [frames[-1]] * (inference_count - original_frame_count)
         size = self._size_for_shape(first.shape[0], first.shape[1])
 
