@@ -147,7 +147,7 @@ class CosmosClient:
     """Client for the Cosmos 3 Generator video API used by the Nebius vLLM-Omni endpoint.
 
     COSMOS_URL is the endpoint base URL, not an /v1/infer URL. The client uploads
-    an episode to POST /v1/videos, requests derived edge transfer, polls the job,
+    an episode to POST /v1/videos, uses basic V2V by default (optional edge transfer), polls the job,
     and downloads the MP4 from /content. A local mock validates the protocol;
     it does not prove that the hosted endpoint is reachable.
     """
@@ -241,11 +241,11 @@ class CosmosClient:
         if self.timeout <= 0 or self.poll_interval <= 0:
             raise ValueError("timeout and poll_interval must be positive")
 
-        # Cosmos3 video generation expects frame counts of 8n+1. Pad short or
-        # misaligned episodes by repeating the final frame, then trim the output.
-        inference_count = max(25, original_frame_count + ((1 - original_frame_count) % 8))
+        # Cosmos3 accepts 25..297 requested frames and handles its internal temporal
+        # alignment itself. Pad only clips shorter than the minimum; trim that padding.
+        inference_count = max(25, original_frame_count)
         if inference_count > 297:
-            raise ValueError("padding to a valid Cosmos3 frame count would exceed the 297-frame limit")
+            raise ValueError("padding to the 25-frame minimum would exceed the 297-frame limit")
         inference_frames = frames + [frames[-1]] * (inference_count - original_frame_count)
         size = self._size_for_shape(first.shape[0], first.shape[1])
 
@@ -257,7 +257,7 @@ class CosmosClient:
             extra_params = {
                 "use_resolution_template": False,
                 "use_duration_template": False,
-                "guardrails": False,
+                "guardrails": True,
             }
             if self.transfer_enabled:
                 # Transfer V2V currently has a known resolution-parsing issue in some
