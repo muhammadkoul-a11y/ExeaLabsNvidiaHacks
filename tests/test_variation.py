@@ -1,4 +1,3 @@
-import base64
 import hashlib
 import http.server
 import io
@@ -89,10 +88,10 @@ def serve_video(handler_fn, response_override=None):
             assert fields.get("model") == "nvidia/Cosmos3-Nano"
             assert fields.get("prompt")
             assert fields.get("size") == "640x640"
-            assert int(fields.get("num_frames", "0")) >= 25
-            assert int(fields["num_frames"]) % 8 == 1
+            assert 25 <= int(fields.get("num_frames", "0")) <= 297
             assert fields.get("resolution") is None  # resolution belongs inside extra_params for transfer
             extra = json.loads(fields["extra_params"])
+            assert extra["guardrails"] is True
             if extra.get("edge") is True:
                 assert extra["resolution"] == "480"
                 assert extra["num_video_frames_per_chunk"] == int(fields["num_frames"])
@@ -106,6 +105,7 @@ def serve_video(handler_fn, response_override=None):
                 output = Path(tmp) / "output.mp4"
                 source.write_bytes(video_bytes)
                 frames = imageio.mimread(str(source), memtest=False)
+                assert len(frames) == int(fields["num_frames"])
                 result_frames = handler_fn(frames)
                 if result_frames is None:
                     jobs_id = f"job-{len(jobs) + 1}"
@@ -242,6 +242,8 @@ def test_cosmos_mock_server_pairs_ids_and_label(dataset, tmp_path):
     assert any(r["latency_ms"] > 0 for r in rs)
     assert all(r["parameters"]["control"] == "basic_v2v" for r in rs)
     assert all(r["parameters"]["control_weight"] is None for r in rs)
+    assert all(r["parameters"]["inference_frames"] == N for r in rs)
+    assert all(r["parameters"]["padding_frames"] == 0 for r in rs)
 
 
 def test_cosmos3_transfer_mode_is_explicit_opt_in(dataset, tmp_path):
