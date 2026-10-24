@@ -158,14 +158,14 @@ class CosmosClient:
 
     def __init__(self, url: str | None = None, timeout: float = 1800.0, retries: int = 1, backoff: float = 1.0,
                  prompt: str = "Restyle the scene with realistic lighting and surface materials. Preserve the exact scene layout, camera view, robot and object positions, and all task-relevant geometry.",
-                 resolution: str = "480", control_weight: float = 1.5, poll_interval: float = 5.0,
+                 resolution: str = "480", control_guidance: float = 1.5, poll_interval: float = 5.0,
                  transfer_enabled: bool | None = None):
         from arrival import config as settings
 
         self.url = (url if url is not None else settings.get("COSMOS_URL") or "").rstrip("/")
         self.api_key = settings.get("COSMOS_API_KEY")
         self.timeout, self.retries, self.backoff = timeout, retries, backoff
-        self.prompt, self.resolution, self.control_weight = prompt, resolution, control_weight
+        self.prompt, self.resolution, self.control_guidance = prompt, resolution, control_guidance
         self.poll_interval = poll_interval
         configured_transfer = settings.get("COSMOS_TRANSFER_ENABLED")
         self.transfer_enabled = (str(configured_transfer or "").strip().lower() in {"1", "true", "yes", "on"}
@@ -236,8 +236,8 @@ class CosmosClient:
             raise ValueError("seed must be a non-negative 32-bit integer")
         if self.resolution != "480":
             raise ValueError("this client currently supports only the Cosmos3 480 resolution tier")
-        if not math.isfinite(self.control_weight) or not 0 <= self.control_weight <= 10:
-            raise ValueError("control_weight must be finite and between 0 and 10")
+        if not math.isfinite(self.control_guidance) or not 0 <= self.control_guidance <= 10:
+            raise ValueError("control_guidance must be finite and between 0 and 10")
         if self.timeout <= 0 or self.poll_interval <= 0:
             raise ValueError("timeout and poll_interval must be positive")
 
@@ -265,7 +265,7 @@ class CosmosClient:
                 extra_params.update({
                     "edge": True,
                     "resolution": self.resolution,
-                    "control_guidance": self.control_weight,
+                    "control_guidance": self.control_guidance,
                     "num_video_frames_per_chunk": inference_count,
                     "max_frames": inference_count,
                 })
@@ -353,7 +353,7 @@ class CosmosClient:
                         "prompt": self.prompt, "request_scope": "episode_video",
                         "model": self.model, "version": self.version, "resolution": self.resolution,
                         "control": "edge_derived" if self.transfer_enabled else "basic_v2v",
-                        "control_weight": self.control_weight if self.transfer_enabled else None,
+                        "control_guidance": self.control_guidance if self.transfer_enabled else None,
                         "input_frames": original_frame_count, "inference_frames": inference_count,
                         "output_frames": original_frame_count, "padding_frames": inference_count - original_frame_count,
                         "attempts": attempt + 1, "requested_seed": seed if seed is not None else 0,
