@@ -358,7 +358,7 @@ def test_malformed_backend_result_fails_frames_without_aborting_copy(dataset, tm
 
 
 def test_cosmos3_rejects_more_than_297_frames_before_network_call():
-    client = variation.CosmosClient("http://127.0.0.1:1/v1/infer", retries=0)
+    client = variation.CosmosClient("http://127.0.0.1:1", retries=0)
     frame = np.zeros((8, 8, 3), dtype=np.uint8)
     with pytest.raises(ValueError, match="at most 297"):
         client.transform_video([frame] * 298, fps=20, seed=7)
