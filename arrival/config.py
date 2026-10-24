@@ -38,6 +38,7 @@ SETTINGS: dict[str, Setting] = {
     "GR00T_POLICY_URL": Setting("arrival.sim.policy.VLAClient (--policy vla)"),
     "COSMOS_URL": Setting("arrival.render.variation.CosmosClient (Cosmos3 Generator endpoint base URL)"),
     "COSMOS_API_KEY": Setting("arrival.render.variation.CosmosClient (hosted endpoint bearer auth)", secret=True),
+    "COSMOS_TRANSFER_ENABLED": Setting("arrival.render.variation.CosmosClient (opt in to edge-transfer mode)"),
     "NEBIUS_IAM_TOKEN": Setting("arrival.jobs.nebius (fanout --backend nebius)", secret=True),
     "NEBIUS_API_URL": Setting("arrival.jobs.nebius", default="https://api.nebius.cloud"),
     "NEBIUS_PROJECT_ID": Setting("arrival.jobs.nebius"),
