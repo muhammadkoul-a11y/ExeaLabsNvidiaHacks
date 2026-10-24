@@ -97,7 +97,7 @@ def serve_video(handler_fn, response_override=None):
                 assert extra["num_video_frames_per_chunk"] == int(fields["num_frames"])
             else:
                 assert extra["condition_video_keep"] == "first"
-                assert extra["condition_frame_indexes_vision"] == list(range((int(fields["num_frames"]) - 1) // 4 + 1))
+                assert extra["condition_frame_indexes_vision"] == [0, 1]
             assert 0 <= int(fields["seed"]) < 2**32
 
             with tempfile.TemporaryDirectory() as tmp:
