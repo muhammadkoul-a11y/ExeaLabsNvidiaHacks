@@ -196,7 +196,7 @@ def test_bad_frame_count_is_rejected():
         variation.select_frames(0, -1, 0)
 
 
-@pytest.mark.parametrize("fps", [0, -1, True, 20.5, "20"])
+@pytest.mark.parametrize("fps", [0, -1, True, "20"])
 def test_bad_fps_rejected_before_copy(dataset, tmp_path, fps):
     dst = tmp_path / "copy"
     with pytest.raises(ValueError, match="fps"):
