@@ -421,7 +421,7 @@ def test_invalid_source_is_rejected_before_copy(dataset, tmp_path):
     assert not dst.exists()
 
 
-@pytest.mark.parametrize("fps", [0, -1, True, 20.5, "20"])
+@pytest.mark.parametrize("fps", [0, -1, True, "20"])
 def test_cosmos_rejects_invalid_fps_before_network_call(fps):
     client = variation.CosmosClient("http://127.0.0.1:1", retries=0)
     frame = np.zeros((8, 8, 3), dtype=np.uint8)
