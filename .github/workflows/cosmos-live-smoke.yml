@@ -1,0 +1,70 @@
+name: Cosmos live endpoint smoke test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install client dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev,lint]"
+      - name: Verify endpoint configuration
+        env:
+          COSMOS_URL: ${{ secrets.COSMOS_URL }}
+          COSMOS_API_KEY: ${{ secrets.COSMOS_API_KEY }}
+          ARRIVAL_DOTENV: "0"
+        run: |
+          python - <<'PY'
+          import os
+          from urllib.parse import urlsplit
+          url = os.environ.get("COSMOS_URL", "").strip()
+          parsed = urlsplit(url)
+          if parsed.scheme != "https" or not parsed.netloc:
+              raise SystemExit("Configure the COSMOS_URL repository secret with the HTTPS endpoint base URL.")
+          print("HTTPS Cosmos endpoint configured; credentials will not be printed.")
+          PY
+      - name: Run one explicit live video request
+        env:
+          COSMOS_URL: ${{ secrets.COSMOS_URL }}
+          COSMOS_API_KEY: ${{ secrets.COSMOS_API_KEY }}
+          ARRIVAL_DOTENV: "0"
+        run: |
+          python - <<'PY'
+          import json
+          import numpy as np
+          from arrival.render.variation import CosmosClient, check_frame
+
+          # Manual workflow only: one small, synthetic 25-frame clip; no dataset or key is logged.
+          y, x = np.mgrid[0:256, 0:256]
+          frames = []
+          for i in range(25):
+              frame = np.empty((256, 256, 3), dtype=np.uint8)
+              frame[..., 0] = (x + i * 3) % 256
+              frame[..., 1] = (y + i * 2) % 256
+              frame[..., 2] = ((x // 8 + y // 8 + i) % 2) * 180 + 40
+              frames.append(frame)
+          output, params = CosmosClient(timeout=2400, retries=0).transform_video(frames, fps=20, seed=42)
+          geometry = check_frame(frames[0], output[0])
+          print(json.dumps({
+              "status": "endpoint_request_completed",
+              "model": params["model"],
+              "version": params["version"],
+              "input_frames": len(frames),
+              "output_frames": len(output),
+              "size": params["size"],
+              "control": params["control"],
+              "first_frame_edge_correlation": geometry["edge_corr"],
+              "first_frame_geometry_check": geometry["ok"],
+              "note": "Synthetic clip smoke test only; not evidence of real-scene geometry preservation."
+          }, indent=2))
+          PY
