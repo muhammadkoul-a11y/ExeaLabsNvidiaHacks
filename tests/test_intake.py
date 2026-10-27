@@ -2,6 +2,7 @@
 
 import importlib.util
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -12,7 +13,7 @@ from arrival.twin.accuracy import load_measurements
 
 from conftest import REPO
 
-AMAL = REPO / "tests" / "fixtures" / "roomplan" / "amal.json"
+OFFICE = REPO / "tests" / "fixtures" / "roomplan" / "office.json"
 KITCHEN = REPO / "tests" / "fixtures" / "roomplan" / "kitchen_real_01.json"
 MEASURE = "counter_length=3.20,counter_height=0.92,sink_width=0.55"
 META = dict(location_type="kitchen", phone="iPhone 15 Pro", ios="18.1", lighting="daylight", clutter="low")
@@ -20,8 +21,8 @@ META = dict(location_type="kitchen", phone="iPhone 15 Pro", ios="18.1", lighting
 
 @pytest.fixture
 def clean_plan(tmp_path):
-    """amal.json with its objects dropped: the walls and floor only, so the geometry checks have nothing to flag."""
-    plan = json.loads(AMAL.read_text())
+    """office.json with its objects dropped: the walls and floor only, so the geometry checks have nothing to flag."""
+    plan = json.loads(OFFICE.read_text())
     plan["objects"] = []
     path = tmp_path / "clean.json"
     path.write_text(json.dumps(plan))
@@ -44,7 +45,7 @@ def photos(tmp_path):
     return [_jpeg(tmp_path / "a.jpg"), _jpeg(tmp_path / "b.jpg", (800, 600))]
 
 
-def _run(tmp_path, photos, room="kitchen_01", plan=AMAL, **kw):
+def _run(tmp_path, photos, room="kitchen_01", plan=OFFICE, **kw):
     args = dict(scans=tmp_path / "scans", out_dir=tmp_path / "renders", measures=MEASURE, **META)
     args.update(kw)
     return it.intake(room, plan, photos, **args)
@@ -54,7 +55,7 @@ def test_fixture_photos_really_carry_gps(photos):
     assert it._photo_problems(photos[0]) == ["a.jpg carries an EXIF GPS tag"]
 
 
-def test_amal_is_no_go_for_its_footprint_overlaps_but_the_folder_validates(tmp_path, photos):
+def test_office_is_no_go_for_its_footprint_overlaps_but_the_folder_validates(tmp_path, photos):
     r = _run(tmp_path, photos)
     assert it.validate_scan_dir(r["dir"]) == []
     assert not r["go"] and len(r["problems"]) == 1 and "overlapping fixtures" in r["problems"][0]
@@ -119,6 +120,16 @@ def test_fewer_than_two_photos_refused(tmp_path, photos):
     assert not (tmp_path / "scans" / "kitchen_01").exists()
 
 
+@pytest.mark.parametrize("name", ["IMG_0001.HEIC", "IMG_0001.jpg"])
+def test_heic_photo_refused_with_how_to_get_jpeg(tmp_path, photos, name):
+    box = b"ftypheic" + bytes(4) + b"mif1heic"
+    heic = tmp_path / name
+    heic.write_bytes((len(box) + 4).to_bytes(4, "big") + box + bytes(64))
+    with pytest.raises(it.IntakeError, match="HEIC/HEIF.*Most Compatible"):
+        _run(tmp_path, [photos[0], heic])
+    assert not (tmp_path / "scans" / "kitchen_01").exists()
+
+
 @pytest.mark.parametrize("spec", ["counter_length=abc", "counter_length=3.2,sink_width=", "counter_height=92cm",
                                   "counter_length=-1", "counter_length=320", "counter_length=nan", "desk=1.0"])
 def test_bad_measurement_refused(tmp_path, photos, spec):
@@ -128,7 +139,7 @@ def test_bad_measurement_refused(tmp_path, photos, spec):
 
 
 def test_roomplan_with_no_walls_refused(tmp_path, photos):
-    plan = json.loads(AMAL.read_text())
+    plan = json.loads(OFFICE.read_text())
     plan["walls"] = []
     bad = tmp_path / "nowalls.json"
     bad.write_text(json.dumps(plan))
@@ -189,3 +200,37 @@ def test_cli_go_and_refusal(tmp_path, photos, clean_plan, capsys):
     assert "GO" in capsys.readouterr().out
     assert cli.main(base + ["--photos", *map(str, photos)]) == 2
     assert "already exists" in capsys.readouterr().err
+
+
+def test_check_reruns_every_check_on_an_existing_folder(tmp_path, photos, clean_plan):
+    amal = it.check(_run(tmp_path, photos, room="amal")["dir"].name, scans=tmp_path / "scans")
+    assert not amal["go"] and "overlapping fixtures" in " ".join(amal["problems"])  # geometry, not only notes
+    d = _run(tmp_path, photos, plan=clean_plan, measures="counter_length=3.2,counter_height=0.92")["dir"]
+    before = it.check("kitchen_01", scans=tmp_path / "scans")
+    assert not before["go"] and "notes.md: 'Sink width (m)' is missing or blank" in before["problems"]
+    notes = d / "notes.md"
+    notes.write_text(re.sub(r"(Sink width \(m\)[^\n]*?)TODO", r"\g<1>0.55", notes.read_text(encoding="utf-8")),
+                     encoding="utf-8")
+    (d / "measurements.json").write_text(json.dumps(
+        {"counter_length_m": 3.2, "counter_height_m": 0.92, "sink_width_m": 0.55}))
+    after = it.check("kitchen_01", scans=tmp_path / "scans")
+    assert after["go"], after["problems"]
+    with pytest.raises(it.IntakeError, match="does not exist"):
+        it.check("kitchen_02", scans=tmp_path / "scans")
+
+
+def test_cli_no_go_points_at_check(tmp_path, photos, clean_plan, capsys):
+    spec = importlib.util.spec_from_file_location("intake_scan", REPO / "scripts" / "intake_scan.py")
+    cli = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(cli)
+    scans = ["--scans", str(tmp_path / "scans")]
+    assert cli.main(["kitchen_01", "--roomplan", str(clean_plan), "--out", str(tmp_path / "r"), *scans,
+                     "--photos", *map(str, photos)]) == 1
+    out = capsys.readouterr().out
+    assert f"intake_scan.py kitchen_01 --check --scans {tmp_path / 'scans'}" in out
+    assert cli.main(["kitchen_01", "--check", *scans]) == 1
+    assert "NO-GO" in capsys.readouterr().out
+    assert cli.main(["kitchen_02", "--check", *scans]) == 2
+    with pytest.raises(SystemExit) as e:
+        cli.main(["kitchen_01", *scans])
+    assert e.value.code == 2 and "--roomplan is required" in capsys.readouterr().err

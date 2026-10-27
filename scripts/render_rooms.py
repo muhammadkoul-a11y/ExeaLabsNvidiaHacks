@@ -1,7 +1,7 @@
 """Top-down PNG of every room under scans/ for eyeballing a compiled twin (TWN-2).
 
     python scripts/render_rooms.py                                   # all rooms under scans/
-    python scripts/render_rooms.py scans/hero_kitchen tests/fixtures/roomplan/amal.json
+    python scripts/render_rooms.py scans/hero_kitchen tests/fixtures/roomplan/office.json
 
 Writes out/renders/<room>_top.png from scan.json and <room>_roomplan_top.png from roomplan.json
 (a bare .json argument is treated as a RoomPlan export). Walls are dark lines, doors brown, windows
@@ -99,12 +99,16 @@ def render(name: str, twin: dict, scale: float) -> Image.Image:
     return img
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("paths", nargs="*", help="room directories or RoomPlan .json files (default: scans/*)")
     ap.add_argument("--out", default="out/renders")
     ap.add_argument("--scale", type=float, default=100.0, help="pixels per metre")
-    a = ap.parse_args()
+    a = ap.parse_args(argv)
+    missing = [p for p in a.paths if not (Path(p).is_file() and Path(p).suffix == ".json")
+               and not any((Path(p) / n).is_file() for n in ("scan.json", "roomplan.json"))]
+    if missing:
+        ap.error(f"no scan.json or roomplan.json at {', '.join(missing)}")
     paths = [Path(p) for p in a.paths] or sorted(p for p in (ROOT / "scans").iterdir() if p.is_dir())
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)

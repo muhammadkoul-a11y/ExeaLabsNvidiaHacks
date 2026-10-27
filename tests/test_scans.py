@@ -1,6 +1,7 @@
 """TWN-2: every scan under scans/ normalizes, compiles, writes a layout, has no overlapping fixture
 footprints, nothing below the floor, a closed wall loop, and builds in MuJoCo."""
 
+import importlib.util
 import math
 
 import pytest
@@ -9,7 +10,7 @@ import yaml
 from arrival.scan import bundle, roomplan
 from arrival.twin.compile import compile_twin, write_twin
 
-from conftest import SCANS
+from conftest import REPO, SCANS
 
 WALL_TOL = 0.01
 FLOOR_TOL = 1e-6
@@ -134,3 +135,46 @@ def test_overlap_ignores_float_noise_between_flush_fixtures():
     into = {"position": [2.0 - 0.005, 0.0, 0.0], "size": [1.0, 0.6, 0.9], "yaw": 0.0}
     assert not _overlap(a, flush)
     assert _overlap(a, into)
+
+
+def test_scan_files_are_read_as_utf8_whatever_the_locale(tmp_path, monkeypatch):
+    """Windows defaults to cp1252, which garbles "Schüssel" and cannot decode "Á" (UTF-8 byte 0x81) at all."""
+    import builtins
+    import io
+    import json
+
+    from arrival.twin.accuracy import load_measurements
+
+    real = io.open
+
+    def cp1252(file, mode="r", buffering=-1, encoding=None, *a, **kw):
+        if "b" not in mode and encoding in (None, "locale"):
+            encoding = "cp1252"
+        return real(file, mode, buffering, encoding, *a, **kw)
+
+    scan = json.loads((SCANS / "hero_kitchen" / "scan.json").read_text(encoding="utf-8"))
+    scan["objects"][0]["label"] = "Ásztal tál"
+    (tmp_path / "k").mkdir()
+    (tmp_path / "k" / "scan.json").write_text(json.dumps(scan, ensure_ascii=False), encoding="utf-8")
+    rp = json.loads((SCANS / "hero_kitchen" / "roomplan.json").read_text(encoding="utf-8"))
+    (tmp_path / "rp.json").write_text(json.dumps({**rp, "note": "Ásztal"}, ensure_ascii=False), encoding="utf-8")
+    m = json.loads((REPO / "tests" / "fixtures" / "measurements" / "hero_kitchen.json").read_text(encoding="utf-8"))
+    (tmp_path / "m.json").write_text(json.dumps({**m, "measured_by": "Ágnes"}, ensure_ascii=False), encoding="utf-8")
+    monkeypatch.setattr(builtins, "open", cp1252)
+    monkeypatch.setattr(io, "open", cp1252)
+    assert bundle.load_room("k", tmp_path)["objects"][0]["label"] == "Ásztal tál"
+    assert roomplan.load(tmp_path / "rp.json", "rp")["fixtures"]
+    assert load_measurements(tmp_path / "m.json")["measured_by"] == "Ágnes"
+
+
+@pytest.mark.parametrize("arg", ["hero_kitchn", "nope.json"])
+def test_render_rooms_refuses_a_path_with_no_scan(tmp_path, capsys, arg):
+    spec = importlib.util.spec_from_file_location("render_rooms", REPO / "scripts" / "render_rooms.py")
+    render_rooms = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(render_rooms)
+    out = tmp_path / "renders"
+    with pytest.raises(SystemExit) as e:
+        render_rooms.main([str(tmp_path / arg), "--out", str(out)])
+    assert e.value.code == 2
+    assert "no scan.json or roomplan.json at" in capsys.readouterr().err
+    assert not out.exists()

@@ -153,6 +153,22 @@ def test_planner_rejects_unknown_object_and_non_dict(monkeypatch, tmp_path):
     assert planner.source == "rule_based"
 
 
+def test_planner_moves_a_fixture_named_as_object_to_target(monkeypatch, tmp_path):
+    # Nemotron answers "open the fridge" with the fridge as its object; that was refused and fell back to the parser
+    planner = _planner_with_reply(monkeypatch, tmp_path, '{"family": "open_fridge", "object": "fridge_1", "target": null}')
+    plan = planner.plan("Let me check if we're out of milk.", ["mug_1"], ["fridge_1", "sink_1"])
+    assert planner.source == "token_factory"
+    assert plan == {"family": "open_fridge", "object": None, "target": "fridge_1"}
+
+
+def test_planner_calls_at_temperature_zero(monkeypatch, tmp_path):
+    seen = {}
+    monkeypatch.setattr("arrival.models.token_factory.complete",
+                        lambda *a, **k: seen.update(k) or '{"family": "open_door", "object": null, "target": null}')
+    VLMPlanner(log=lambda *_: None, cache_path=tmp_path / "c.json").plan("Open the door", [], [])
+    assert seen["temperature"] == 0
+
+
 def test_planner_takes_first_json_object_of_a_chatty_reply(monkeypatch, tmp_path):
     reply = 'Plan: {"family": "open_door", "object": null, "target": null} (note {not json})'
     planner = _planner_with_reply(monkeypatch, tmp_path, reply)
@@ -185,19 +201,20 @@ def test_research_cache_key_is_stable_across_processes():
     assert len(keys) == 1
 
 
-def test_shipped_cache_does_not_shadow_the_api(monkeypatch):
-    # the planner cache that ships in the package must not answer the hero kitchen's template wordings,
-    # or `sim --planner vlm` with a TOKEN_FACTORY_API_KEY never calls Token Factory for them
+def test_default_cache_is_under_out_not_in_the_package(tmp_path, monkeypatch):
+    # a planner cache in the package answered the hero kitchen's template wordings, so `sim --planner vlm`
+    # with a TOKEN_FACTORY_API_KEY never called Token Factory for them; the default now lives in out/
     from arrival.tasks.instructions import FALLBACK_TEMPLATES
 
+    monkeypatch.chdir(tmp_path)
     calls = []
     monkeypatch.setattr("arrival.models.token_factory.complete",
                         lambda *a, **k: calls.append(1) or '{"family": "counter_to_sink", "object": "mug_1", "target": "sink_1"}')
     planner = VLMPlanner(log=lambda *_: None)
-    monkeypatch.setattr(planner, "_save_cache", lambda: None)
     objects, fixtures = ["bowl_1", "mug_1"], ["counter_a", "counter_b", "fridge_1", "sink_1", "stove_1"]
     wordings = [t.format(name="mug") for t in FALLBACK_TEMPLATES["counter_to_sink"]]
     for w in wordings:
         planner.plan(w, objects, fixtures)
         assert planner.source == "token_factory"
     assert len(calls) == len(wordings)
+    assert planner.cache_path.resolve() == (tmp_path / "out" / "cache" / "nemotron_cache.json").resolve()

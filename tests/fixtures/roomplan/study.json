@@ -1,0 +1,419 @@
+{
+  "version": 2,
+  "story": 0,
+  "walls": [
+    {
+      "identifier": "WALL-STUDY-NORTH",
+      "category": {
+        "wall": {}
+      },
+      "confidence": {
+        "high": {}
+      },
+      "dimensions": [
+        4.5,
+        2.5,
+        0
+      ],
+      "transform": [
+        1.0,
+        0,
+        -0.0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0.0,
+        0,
+        1.0,
+        0,
+        0,
+        0.050000000000000044,
+        -1.9,
+        1
+      ],
+      "parentIdentifier": null,
+      "completedEdges": [],
+      "polygonCorners": [],
+      "story": 0,
+      "curve": null
+    },
+    {
+      "identifier": "WALL-STUDY-SOUTH",
+      "category": {
+        "wall": {}
+      },
+      "confidence": {
+        "high": {}
+      },
+      "dimensions": [
+        4.5,
+        2.5,
+        0
+      ],
+      "transform": [
+        1.0,
+        0,
+        -0.0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0.0,
+        0,
+        1.0,
+        0,
+        0,
+        0.050000000000000044,
+        1.9,
+        1
+      ],
+      "parentIdentifier": null,
+      "completedEdges": [],
+      "polygonCorners": [],
+      "story": 0,
+      "curve": null
+    },
+    {
+      "identifier": "WALL-STUDY-EAST",
+      "category": {
+        "wall": {}
+      },
+      "confidence": {
+        "high": {}
+      },
+      "dimensions": [
+        3.8,
+        2.5,
+        0
+      ],
+      "transform": [
+        6.123233995736766e-17,
+        0,
+        -1.0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1.0,
+        0,
+        6.123233995736766e-17,
+        0,
+        2.25,
+        0.050000000000000044,
+        0,
+        1
+      ],
+      "parentIdentifier": null,
+      "completedEdges": [],
+      "polygonCorners": [],
+      "story": 0,
+      "curve": null
+    },
+    {
+      "identifier": "WALL-STUDY-WEST",
+      "category": {
+        "wall": {}
+      },
+      "confidence": {
+        "high": {}
+      },
+      "dimensions": [
+        3.8,
+        2.5,
+        0
+      ],
+      "transform": [
+        6.123233995736766e-17,
+        0,
+        -1.0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1.0,
+        0,
+        6.123233995736766e-17,
+        0,
+        -2.25,
+        0.050000000000000044,
+        0,
+        1
+      ],
+      "parentIdentifier": null,
+      "completedEdges": [],
+      "polygonCorners": [],
+      "story": 0,
+      "curve": null
+    }
+  ],
+  "floors": [
+    {
+      "identifier": "FLOOR-STUDY",
+      "category": {
+        "floor": {}
+      },
+      "confidence": {
+        "high": {}
+      },
+      "dimensions": [
+        4.5,
+        3.8,
+        0
+      ],
+      "transform": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        -1.2,
+        0,
+        1
+      ],
+      "polygonCorners": [
+        [
+          -2.25,
+          -1.9,
+          0
+        ],
+        [
+          2.25,
+          -1.9,
+          0
+        ],
+        [
+          2.25,
+          1.9,
+          0
+        ],
+        [
+          -2.25,
+          1.9,
+          0
+        ]
+      ],
+      "story": 0
+    }
+  ],
+  "doors": [
+    {
+      "identifier": "DOOR-STUDY-01",
+      "category": {
+        "door": {
+          "isOpen": false
+        }
+      },
+      "confidence": {
+        "high": {}
+      },
+      "dimensions": [
+        0.8,
+        2.0,
+        0
+      ],
+      "transform": [
+        1.0,
+        0,
+        -0.0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0.0,
+        0,
+        1.0,
+        0,
+        0.0,
+        -0.19999999999999996,
+        1.9,
+        1
+      ],
+      "parentIdentifier": "WALL-STUDY-SOUTH",
+      "story": 0
+    }
+  ],
+  "windows": [],
+  "openings": [],
+  "objects": [
+    {
+      "identifier": "BED-01",
+      "category": {
+        "bed": {}
+      },
+      "confidence": {
+        "high": {}
+      },
+      "dimensions": [
+        1.4,
+        0.6,
+        2.0
+      ],
+      "transform": [
+        1.0,
+        0,
+        -0.0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0.0,
+        0,
+        1.0,
+        0,
+        -1.3,
+        -0.8999999999999999,
+        -0.8,
+        1
+      ],
+      "story": 0
+    },
+    {
+      "identifier": "TV-01",
+      "category": {
+        "television": {}
+      },
+      "confidence": {
+        "high": {}
+      },
+      "dimensions": [
+        0.8,
+        0.5,
+        0.1
+      ],
+      "transform": [
+        1.0,
+        0,
+        -0.0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0.0,
+        0,
+        1.0,
+        0,
+        -1.3,
+        0.0,
+        1.7999999999999998,
+        1
+      ],
+      "story": 0
+    },
+    {
+      "identifier": "STORAGE-STUDY-01",
+      "category": {
+        "storage": {}
+      },
+      "confidence": {
+        "high": {}
+      },
+      "dimensions": [
+        0.8,
+        1.6,
+        0.4
+      ],
+      "transform": [
+        6.123233995736766e-17,
+        0,
+        -1.0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1.0,
+        0,
+        6.123233995736766e-17,
+        0,
+        -1.95,
+        -0.3999999999999999,
+        1.2,
+        1
+      ],
+      "story": 0
+    },
+    {
+      "identifier": "DESK-01",
+      "category": {
+        "table": {}
+      },
+      "confidence": {
+        "high": {}
+      },
+      "dimensions": [
+        1.2,
+        0.75,
+        0.7
+      ],
+      "transform": [
+        6.123233995736766e-17,
+        0,
+        -1.0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1.0,
+        0,
+        6.123233995736766e-17,
+        0,
+        1.8,
+        -0.825,
+        -0.5,
+        1
+      ],
+      "story": 0
+    },
+    {
+      "identifier": "CHAIR-STUDY-01",
+      "category": {
+        "chair": {}
+      },
+      "confidence": {
+        "high": {}
+      },
+      "dimensions": [
+        0.55,
+        0.85,
+        0.55
+      ],
+      "transform": [
+        6.123233995736766e-17,
+        0,
+        -1.0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1.0,
+        0,
+        6.123233995736766e-17,
+        0,
+        1.15,
+        -0.7749999999999999,
+        -0.5,
+        1
+      ],
+      "story": 0
+    }
+  ],
+  "sections": []
+}

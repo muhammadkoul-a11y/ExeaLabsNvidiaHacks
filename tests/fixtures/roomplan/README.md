@@ -1,27 +1,32 @@
-# Real RoomPlan exports (test fixtures)
+# RoomPlan exports (test fixtures)
 
-Public Apple RoomPlan `CapturedRoom` JSON exports found on GitHub (`gh search code polygonCorners`),
-copied verbatim for normalizer tests. Both look like real phone captures (non-round transforms,
-floor below the ARKit origin, mixed confidences). Neither contains kitchen fixtures.
+Apple RoomPlan `CapturedRoom` JSON exports used for normalizer, compiler, sim, and intake tests.
 
-| file | source repo | path in repo |
-| --- | --- | --- |
-| `amal.json` | amal884/FormModuleBimProject | `src/jsonFiles/sortie.json` |
-| `shopyseek.json` | sow-coding/shopyseek-web | `public/objects.json` |
-
-## Licence check (P2, 2026-10-21)
-
-Neither source repository has a licence: the GitHub API reports no licence for either repo, and neither has a
-`LICENSE` file (checked with `gh api repos/<owner>/<repo>`).
-
-| file | source repo | licence | last push |
+| file | description | licence | source |
 | --- | --- | --- | --- |
-| `amal.json` | amal884/FormModuleBimProject | none | 2024-03-07 |
-| `shopyseek.json` | sow-coding/shopyseek-web | none | 2025-12-24 |
+| `kitchen_real_01.json` | Real kitchen capture with flush cabinets and appliances | Apache 2.0 | Consented teammate capture (P2, `docs/SCANNING.md`) |
+| `office.json` | Office capture: table, chairs, storage, doors (open/closed), window, polygon floor | Apache 2.0 | Authored test fixture (replaces unlicensed `amal.json`, task P5) |
+| `study.json` | Study / bedroom capture: desk blocked by chair, bed, television, storage, closed door | Apache 2.0 | Authored test fixture (replaces unlicensed `shopyseek.json`, task P5) |
 
-With no licence, the authors keep all rights, so these files have no grant that lets this repository redistribute
-them. They are kept only until our own consented captures (P2, `docs/SCANNING.md`) can replace them. These files use
-them: `tests/test_intake.py`, `tests/test_non_kitchen.py`, `tests/test_roomplan_coverage.py`, `tests/test_summary.py`,
-`tests/test_web.py`, `arrival/eval/summary.py` and `scripts/render_rooms.py`. The office scan (`amal.json`) is the only
-non-kitchen room the sim runs end to end, so a replacement needs a room with a table and chairs. `shopyseek.json`
-needs a desk whose only free side is blocked by its chair.
+## Licence & Provenance (Task P5)
+
+Previously, two third-party exports (`amal.json` and `shopyseek.json`) without software licenses were temporarily used as test fixtures. Under hackathon rules and open-source standards, ungranted third-party assets cannot be redistributed.
+
+Both fixtures were replaced with clean, authored captures under Apache 2.0:
+- `office.json`: exercises non-kitchen table interactions (`move_on_table`), solid furniture, walkers, room-appropriate objects, portal rendering, and intake overlap validation.
+- `study.json`: exercises bedroom category classification (`room_kind`), portal rendering, and the edge-case where a desk's free long edge is blocked by a chair so no task can be placed.
+
+### Real-device coverage note
+`kitchen_real_01.json` is a real phone capture, but contains no doors or windows. `office.json` and `study.json` are clean authored test fixtures with axis-aligned geometry and round dimensions. Real phone captures of an office and bedroom with doors and windows remain open under task P5 to validate portal placement against real-device sensor noise and arbitrary yaw angles.
+
+These fixtures are used by:
+- `tests/test_intake.py`
+- `tests/test_non_kitchen.py`
+- `tests/test_roomplan.py`
+- `tests/test_roomplan_coverage.py`
+- `tests/test_summary.py`
+- `tests/test_openings_sim.py`
+- `tests/test_ios_bundle.py`
+- `tests/test_web.py`
+- `arrival/eval/summary.py`
+- `scripts/render_rooms.py`

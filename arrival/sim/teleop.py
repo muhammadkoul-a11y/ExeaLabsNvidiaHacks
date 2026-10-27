@@ -17,6 +17,7 @@ dataset labelled `teleop_keyboard` (usable as DAT-4 seeds).
 from __future__ import annotations
 
 import json
+import math
 import sys
 import time
 from collections.abc import Callable, Iterable, Iterator
@@ -421,11 +422,19 @@ def main(argv=None) -> int:
     ap.add_argument("--record", action="store_true", help="also write the successful demos as a LeRobot v2 dataset")
     ap.add_argument("--no-viewer", action="store_true", help="no window (for a quick terminal-only check)")
     a = ap.parse_args(argv)
-    if a.operator_usd_per_hour < 0 or a.setup_usd < 0 or a.successes < 1:
-        ap.error("costs must be >= 0 and --successes >= 1")
+    if not all(math.isfinite(c) and c >= 0 for c in (a.operator_usd_per_hour, a.setup_usd)) or a.successes < 1:
+        ap.error("costs must be finite numbers >= 0 and --successes >= 1")
+    if a.people < 0 or a.seed < 0:
+        ap.error("--people and --seed must be >= 0")
+    if a.res <= 0 or a.res % 16:
+        ap.error("--res must be a positive multiple of 16")
     if a.no_viewer and not sys.stdin.isatty():
         ap.error("--no-viewer reads keys from the terminal, so it needs an interactive one")
-    twin = compile_twin(load_room(a.room, a.scans))
+    try:
+        bundle = load_room(a.room, a.scans)
+    except FileNotFoundError:
+        ap.error(f"no scan for room {a.room!r} under {a.scans}")
+    twin = compile_twin(bundle)
     print(HELP, flush=True)
     kw = dict(people=a.people, seed=a.seed, res=a.res, record=a.record)
     args = (a.out, a.operator_usd_per_hour, a.setup_usd, a.assumption, a.successes)

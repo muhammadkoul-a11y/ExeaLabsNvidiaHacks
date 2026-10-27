@@ -63,6 +63,16 @@ def test_passes_against_the_arrival_server(arrival_url, capsys):
     assert len(list((out / "jobs").iterdir())) == 1  # only the good upload became a job
 
 
+def test_passes_against_a_public_server(tmp_path, capsys):
+    """--public shows a visitor only the jobs their cookie owns, as DEPLOY.md hosts it."""
+    srv = make_server(port=0, out_dir=tmp_path / "out", scans_dir=SCANS, public=True)
+    try:
+        assert smoke.main([_serve(srv), "--json"]) == 0, capsys.readouterr().out
+    finally:
+        srv.shutdown()
+        srv.server_close()
+
+
 def test_fails_a_server_that_accepts_bad_uploads_and_crafted_paths(capsys):
     srv = ThreadingHTTPServer(("127.0.0.1", 0), _AcceptsEverything)
     try:
@@ -86,3 +96,13 @@ def test_wait_reports_a_job_the_worker_never_finished(arrival_url, capsys):
     url, _ = arrival_url  # no worker is running
     assert smoke.main([url, "--wait", "0.5"]) == 1
     assert "FAIL worker finished the job: status=queued" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("args, why", [(["--scan", "no_such_scan.json"], "no_such_scan.json"),
+                                       (["--timeout", "0"], "--timeout"), (["--timeout", "nan"], "--timeout"),
+                                       (["--wait", "-1"], "--wait"), (["--wait", "nan"], "--wait")])
+def test_bad_arguments_exit_2_before_any_request(args, why, capsys):
+    with pytest.raises(SystemExit) as e:
+        smoke.main(["http://127.0.0.1:9", *args])
+    assert e.value.code == 2
+    assert why in capsys.readouterr().err

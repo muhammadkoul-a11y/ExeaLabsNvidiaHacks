@@ -1,0 +1,134 @@
+{
+  "run_at": "2026-10-26T21:14:40+00:00",
+  "checks": {
+    "token_factory_detect": {
+      "ok": true,
+      "model": "nvidia/Nemotron-3.5-Super-VL",
+      "seconds": 25.941,
+      "source": "token_factory",
+      "reply_sources": {
+        "token_factory": 6
+      },
+      "replies": {
+        "mug/f000": [
+          {
+            "label": "mug",
+            "box": [
+              56,
+              42,
+              71,
+              58
+            ],
+            "confidence": 0.9
+          }
+        ],
+        "mug/f001": [
+          {
+            "label": "mug",
+            "box": [
+              59,
+              41,
+              74,
+              59
+            ],
+            "confidence": 0.9
+          }
+        ],
+        "mug/f002": [
+          {
+            "label": "mug",
+            "box": [
+              52,
+              40,
+              62,
+              55
+            ],
+            "confidence": 0.9
+          }
+        ],
+        "empty/f000": [],
+        "empty/f001": [],
+        "empty/f002": []
+      },
+      "mug": {
+        "state": "detected",
+        "objects": [
+          {
+            "id": "mug_1",
+            "catalog_id": "mug",
+            "label": "mug",
+            "size": [
+              0.08,
+              0.08,
+              0.1
+            ],
+            "position": [
+              3.208894,
+              0.441597,
+              0.97
+            ],
+            "yaw": 0.0,
+            "placed_by": "detect_objects",
+            "provenance": "detected",
+            "detection": {
+              "confidence": 0.9,
+              "frames": [
+                "f000"
+              ],
+              "evidence": [
+                {
+                  "frame": "f000",
+                  "box": [
+                    56,
+                    42,
+                    71,
+                    58
+                  ],
+                  "confidence": 0.9
+                }
+              ]
+            }
+          }
+        ],
+        "rejected": [
+          {
+            "frame": "f001",
+            "label": "mug",
+            "box": [
+              59,
+              41,
+              74,
+              59
+            ],
+            "confidence": 0.9,
+            "reason": "flat_surface"
+          },
+          {
+            "frame": "f002",
+            "label": "mug",
+            "box": [
+              52,
+              40,
+              62,
+              55
+            ],
+            "confidence": 0.9,
+            "reason": "flat_surface"
+          }
+        ],
+        "truth": [
+          3.2,
+          0.45,
+          0.97
+        ],
+        "position_error_m": 0.0122
+      },
+      "empty": {
+        "state": "none_found",
+        "objects": [],
+        "rejected": []
+      },
+      "log": []
+    }
+  }
+}

@@ -61,6 +61,7 @@ def evaluate(twin: dict | None = None, families: list[str] | None = None, episod
               make_manifest(twin, families, episodes, seed, people, holdout, res, log, base=base, arm=arm))
     twin, cfg = frozen["twin"], frozen["settings"]
     policy = ScriptedExpert() if policy_name == "scripted" else VLAClient()
+    policy_server = policy.server_info() if hasattr(policy, "server_info") else None
     run_id = uuid.uuid4().hex
     run_dir = Path(out_dir) / "eval" / run_id
     run_dir.mkdir(parents=True, exist_ok=False)
@@ -112,6 +113,7 @@ def evaluate(twin: dict | None = None, families: list[str] | None = None, episod
     observed = [r for r in rows if r["error"] is None]
     report = {"room_id": twin["room_id"], "policy": policy_name, "run_id": run_id,
               "checkpoint_id": checkpoint_id, "checkpoint_id_source": "caller" if policy_name == "vla" else "scripted",
+              "policy_server": policy_server,
               "manifest_id": frozen["manifest_id"], "twin_sha256": frozen["twin_sha256"],
               "manifest_path": str(manifest_path), "episodes_path": str(episodes_path),
               "runtime": {"python": platform.python_version(), "mujoco": version("mujoco"), "numpy": version("numpy")},

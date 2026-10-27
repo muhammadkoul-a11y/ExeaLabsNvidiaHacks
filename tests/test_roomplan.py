@@ -84,7 +84,7 @@ def test_four_photo_slot(tmp_path):
 
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "roomplan"
-REAL = sorted(FIXTURES.glob("*.json"))
+FIXTURE_PATHS = sorted(FIXTURES.glob("*.json"))
 
 
 def _closed(walls, tol=0.05):
@@ -92,8 +92,8 @@ def _closed(walls, tol=0.05):
     return all(sum(math.dist(e, o) <= tol for o in ends) >= 2 for e in ends)
 
 
-@pytest.mark.parametrize("path", REAL, ids=[p.stem for p in REAL])
-def test_real_export_normalizes_and_compiles(path):
+@pytest.mark.parametrize("path", FIXTURE_PATHS, ids=[p.stem for p in FIXTURE_PATHS])
+def test_roomplan_fixture_normalizes_and_compiles(path):
     raw = json.loads(path.read_text())
     b = roomplan.load(path, path.stem)
     assert all(isinstance(f["category"], str) for f in b["fixtures"])

@@ -615,7 +615,7 @@ class VLMPlanner:
     def __init__(self, log=print, cache_path: Path | str | None = None):
         self.log = log
         self.source = None
-        self.cache_path = Path(cache_path) if cache_path else Path(__file__).resolve().parents[1] / "models" / "nemotron_cache.json"
+        self.cache_path = Path(cache_path) if cache_path else Path("out") / "cache" / "nemotron_cache.json"
         self._cache = self._load_cache()
         self._offline = False  # set by the first network failure so later tasks skip the 60 s timeout
 
@@ -652,6 +652,8 @@ class VLMPlanner:
         plan, _ = json.JSONDecoder().raw_decode(txt[txt.index("{"):])
         if not isinstance(plan, dict) or plan.get("family") not in SIM_FAMILIES:
             raise ValueError(f"plan has no known family: {plan!r}")
+        if plan.get("object") in fixtures and plan.get("target") in (None, plan["object"]):
+            plan["object"], plan["target"] = None, plan["object"]  # "open the fridge" names the fridge as its object
         if plan.get("object") is not None and plan["object"] not in objects:
             raise ValueError(f"plan object {plan['object']!r} is not in the scene")
         if plan.get("target") is not None and plan["target"] not in fixtures:
@@ -676,7 +678,7 @@ class VLMPlanner:
                 user_payload["research_context"] = research_context
             txt = complete([{"role": "system", "content": "Return only JSON: {\"family\": one of counter_to_sink|"
                              "counter_to_counter|open_drawer|open_door|close_drawer|close_door|put_in_drawer|wipe_counter|open_fridge, \"object\": id|null, \"target\": id|null}"},
-                            {"role": "user", "content": json.dumps(user_payload)}], role="super")
+                            {"role": "user", "content": json.dumps(user_payload)}], role="super", temperature=0)
             plan = self._parse_plan(txt, objects, fixtures)
             self.source = "token_factory"
             self._cache[key] = plan
@@ -719,6 +721,16 @@ class VLAClient(Policy):
             raise VLANotConfigured("GR00T_POLICY_URL is not set; start a GR00T policy server and export its URL.")
         self.timeout = timeout
         self.queue: list[np.ndarray] = []
+
+    def server_info(self) -> dict:
+        """The server's GET /health answer (the mock says "server": "mock", the shim "gr00t_shim"), or
+        {"error": ...} when it has none; never raises, so a server without /health can still be evaluated."""
+        try:
+            with urllib.request.urlopen(self.url.rstrip("/") + "/health", timeout=min(self.timeout, 5.0)) as r:
+                info = json.load(r)
+        except Exception as e:
+            return {"error": f"{type(e).__name__}: {e}"}
+        return info if isinstance(info, dict) else {"error": "/health did not return a JSON object"}
 
     def reset(self, env, task: dict) -> None:
         self.instruction = task["instruction"]

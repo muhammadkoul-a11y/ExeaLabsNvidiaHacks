@@ -56,6 +56,15 @@ def test_continuation_lines_and_comments_are_joined():
     assert check_docs.fenced_commands(text) == [(2, "python -m arrival sim --episodes 2")]
 
 
+def test_double_backslash_line_end_in_a_fenced_block(tmp_path):
+    # markdown does not unescape code blocks: a pasted "\\" is a literal backslash, and the command ends there
+    (tmp_path / "docs" / "ref").mkdir(parents=True)
+    (tmp_path / "docs" / "ref" / "RUN.md").write_text(
+        "Prose may end in \\\\\n```bash\npython a.py --x 1 \\\\\n    --y 2 \\\n    --z 3\n```\n", encoding="utf-8")
+    assert check_docs.check_continuations(tmp_path) == [
+        "docs/ref/RUN.md:3: line ends in two backslashes; bash reads a literal backslash and ends the command there"]
+
+
 def test_task_listed_done_and_open(tmp_path):
     doc = tmp_path / "README.md"
     text = "**Done:** CAP-1, MAN-2. **Open:** MAN-2, SIM-5."
@@ -117,3 +126,17 @@ def test_todo_counts_must_match_item_statuses(tmp_path):
     todo["counts"].update(done=2, review=1)
     path.write_text(json.dumps(todo), encoding="utf-8")
     assert check_docs.check_todo_counts(tmp_path) == []
+
+
+def test_site_todo_names_only_open_items(tmp_path):
+    (tmp_path / "site" / "js").mkdir(parents=True)
+    (tmp_path / "site" / "data").mkdir()
+    items = [{"id": "G1", "status": "done"}, {"id": "G2", "status": "blocked"}, {"id": "P1", "status": "todo"}]
+    (tmp_path / "site" / "data" / "todo.json").write_text(json.dumps({"groups": [{"items": items}]}), encoding="utf-8")
+    js = tmp_path / "site" / "js" / "sections.js"
+    js.write_text("    `<b>Fine-tune (G1).</b> Not run.`,\n    `<b>Server (G2, DAT-3).</b> Not run.`,\n", encoding="utf-8")
+    assert check_docs.check_site_todo(tmp_path) == [
+        "site/js/sections.js:1: G1 is done in site/data/todo.json but listed as still to do",
+        "site/js/sections.js:2: DAT-3 is not an item in site/data/todo.json"]
+    js.write_text("    `<b>Server (G2).</b> Not run.`,\n    `<b>Scans (P1, G2).</b> Not run.`,\n", encoding="utf-8")
+    assert check_docs.check_site_todo(tmp_path) == []

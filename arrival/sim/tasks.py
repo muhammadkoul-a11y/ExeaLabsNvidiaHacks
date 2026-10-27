@@ -29,24 +29,33 @@ HOLDOUT_OFFSET = [0.0, 0.08]
 SIM_WORDINGS = {
     **WORDINGS,
     "open_drawer": ["Open the top drawer.", "Pull the top drawer of the {name} open.",
-                    "Slide open the drawer under the counter."],
-    "open_door": ["Open the cabinet door.", "Swing the {name} cabinet door open.", "Pull the cabinet door open."],
-    "close_drawer": ["Close the drawer.", "Push the open drawer of the {name} shut.", "Slide the drawer closed."],
-    "close_door": ["Close the cabinet door.", "Push the {name} cabinet door shut.", "Swing the open door closed."],
+                    "Slide open the drawer under the counter.", "Pull out the top drawer on the {name}."],
+    "open_door": ["Open the cabinet door.", "Swing the {name} cabinet door open.", "Pull the cabinet door open.",
+                  "Swing open the lower cabinet door on the {name}."],
+    "close_drawer": ["Close the drawer.", "Push the open drawer of the {name} shut.", "Slide the drawer closed.",
+                     "Push the drawer on the {name} back in."],
+    "close_door": ["Close the cabinet door.", "Push the {name} cabinet door shut.", "Swing the open door closed.",
+                   "Shut the cabinet door on the {name}."],
     "put_in_drawer": ["Put the {name} in the open drawer.", "Place the {name} into the drawer.",
-                      "Move the {name} from the counter into the drawer."],
+                      "Move the {name} from the counter into the drawer.", "Store the {name} in the drawer."],
     "wipe_counter": ["Wipe the counter with the {name}.", "Clean the counter top with the {name}.",
-                     "Scrub the counter using the {name}."],
-    "open_fridge": ["Open the fridge.", "Pull the {name} door open.", "Swing the fridge door open."],
+                     "Scrub the counter using the {name}.", "Use the {name} to wipe down the counter."],
+    "open_fridge": ["Open the fridge.", "Pull the {name} door open.", "Swing the fridge door open.",
+                    "Get the fridge open."],
     "move_on_table": ["Move the {name} further along the table.", "Pick up the {name} and set it down along the table.",
-                      "Shift the {name} to another spot on the table."],
-    "open_oven": ["Open the oven.", "Pull the oven door down.", "Open the oven door of the {name}."],
-    "open_dishwasher": ["Open the dishwasher.", "Pull the dishwasher door open.", "Open the {name} door."],
-    "turn_on_faucet": ["Turn on the faucet.", "Lift the faucet lever to start the water.", "Turn the tap on."],
+                      "Shift the {name} to another spot on the table.", "Reposition the {name} on the table."],
+    "open_oven": ["Open the oven.", "Pull the oven door down.", "Open the oven door of the {name}.",
+                  "Lower the oven door until it is flat."],
+    "open_dishwasher": ["Open the dishwasher.", "Pull the dishwasher door open.", "Open the {name} door.",
+                        "Fold the dishwasher door down."],
+    "turn_on_faucet": ["Turn on the faucet.", "Lift the faucet lever to start the water.", "Turn the tap on.",
+                       "Push the faucet handle up to run the water."],
     "load_dishwasher": ["Put the {name} in the dishwasher.", "Load the {name} into the dishwasher rack.",
-                        "Move the {name} from the counter into the dishwasher."],
+                        "Move the {name} from the counter into the dishwasher.",
+                        "Set the {name} on the pulled-out dishwasher rack."],
     "unload_dishwasher": ["Take the {name} out of the dishwasher.", "Unload the {name} onto the counter.",
-                          "Move the {name} from the dishwasher rack to the counter."],
+                          "Move the {name} from the dishwasher rack to the counter.",
+                          "Lift the {name} off the dishwasher rack and put it on the counter."],
 }
 
 
@@ -261,18 +270,20 @@ def make_tasks(twin: dict, families: list[str], n: int, seed: int = 0, people: i
         v = dict(rng.choice(pools[fam]))
         light = rng.choice(LIGHTING)
         name = v.get("object_label") or v.get("name")
+        made_by = {}
         if use_generated_instructions:
             from arrival.tasks.instructions import generate_instructions
             gen = generate_instructions(fam, object_name=v.get("object_label"), fixture_name=v.get("name"))
             options = gen.get(split, gen.get("train", SIM_WORDINGS[fam]))
             instr = options[rng.randrange(len(options))]
             w = -1  # the generated lists have their own indexing: no template index, and no holdout wording
+            made_by = {"instruction_source": gen.get("source")}
         else:
             words = SIM_WORDINGS[fam]
             w = rng.choice([k for k in range(len(words)) if len(words) <= HOLDOUT_WORDING or (k == HOLDOUT_WORDING) == holdout])
             instr = words[w].format(name=name)
         t = {"family": fam, "lighting": light, "wording_index": w, "people": people, "seed": seed * 1000 + i,
-             "holdout": holdout, "instruction": instr, "split": split, **v}
+             "holdout": holdout, "instruction": instr, "split": split, **made_by, **v}
         if "start" in v:
             off = rng.choice([o for o in POSE_OFFSETS if (list(o) == HOLDOUT_OFFSET) == holdout])
             src = _fx(twin, v["source"])

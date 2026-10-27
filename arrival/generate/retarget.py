@@ -182,8 +182,17 @@ def main(argv=None) -> int:
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--baseline", action="store_true", help="also time the scripted expert on the same count")
     a = ap.parse_args(argv)
-    r = retarget(compile_twin(load_room(a.room, a.scans)), a.out, a.attempts, a.seed, a.res, a.family,
-                 baseline=a.baseline)
+    if a.attempts < 1:
+        ap.error("--attempts must be >= 1")
+    if a.seed < 0:
+        ap.error("--seed must be >= 0")
+    if a.res <= 0 or a.res % 16:
+        ap.error("--res must be a positive multiple of 16")
+    try:
+        bundle = load_room(a.room, a.scans)
+    except FileNotFoundError:
+        ap.error(f"no scan for room {a.room!r} under {a.scans}")
+    r = retarget(compile_twin(bundle), a.out, a.attempts, a.seed, a.res, a.family, baseline=a.baseline)
     print(json.dumps({k: v for k, v in r["report_data"].items() if k != "rows"}, indent=2))
     return 0
 

@@ -19,8 +19,8 @@ from arrival.twin.compile import compile_twin, place_default_objects  # noqa: E4
 
 from conftest import REPO, SCANS  # noqa: E402
 
-REAL = REPO / "tests" / "fixtures" / "roomplan"
-BASE = (2.0, 0.6, 0.75)  # a stand spot clear of the amal office's table and chairs (test_non_kitchen)
+FIXTURES = REPO / "tests" / "fixtures" / "roomplan"
+BASE = (2.0, 0.6, 0.75)  # a stand spot clear of the office's table and chairs (test_non_kitchen)
 HERO_BASE = (1.3, 1.0, 0.75)
 PORTAL = re.compile(r"(door|window|opening)(\d+)_(\w+)$")
 PORTAL_TAG = re.compile(r'<geom name="(?:door|window|opening)\d+_\w+"[^>]*/>')
@@ -77,8 +77,8 @@ def _export():
     return {"walls": walls, "floors": [], "doors": doors, "windows": windows, "openings": openings, "objects": []}
 
 
-def _real(name: str) -> dict:
-    twin = compile_twin(roomplan.load(REAL / f"{name}.json", name))
+def _fixture(name: str) -> dict:
+    twin = compile_twin(roomplan.load(FIXTURES / f"{name}.json", name))
     place_default_objects(twin, seed=0)
     return twin
 
@@ -97,8 +97,8 @@ def synthetic():
 
 
 @pytest.fixture(scope="module")
-def amal():
-    return _real("amal")
+def office():
+    return _fixture("office")
 
 
 def _portal_geoms(m) -> dict:
@@ -174,11 +174,11 @@ def test_portals_lie_on_their_wall(synthetic):
 
 
 @pytest.mark.parametrize("name,counts", [
-    ("amal", {("door", 0): "closed", ("door", 1): "open", ("window", 0): "window"}),
-    ("shopyseek", {("door", 0): "closed"}),
+    ("office", {("door", 0): "closed", ("door", 1): "open", ("window", 0): "window"}),
+    ("study", {("door", 0): "closed"}),
 ])
-def test_real_exports_draw_every_portal_on_its_wall(name, counts):
-    twin = _real(name)
+def test_authored_fixtures_draw_every_portal_on_its_wall(name, counts):
+    twin = _fixture(name)
     m = _model(twin)
     d = mujoco.MjData(m)
     mujoco.mj_forward(m, d)
@@ -199,17 +199,17 @@ def test_real_exports_draw_every_portal_on_its_wall(name, counts):
 
 def test_export_without_parent_ids_lands_on_the_same_walls():
     """Exports from before iOS 17 carry no parentIdentifier: the nearest wall is the same one."""
-    raw = json.loads((REAL / "amal.json").read_text())
+    raw = json.loads((FIXTURES / "office.json").read_text())
     for key in ("doors", "windows", "openings"):
         for s in raw[key]:
             del s["parentIdentifier"]
-    orphan = compile_twin(roomplan.to_bundle(raw, "amal"))
+    orphan = compile_twin(roomplan.to_bundle(raw, "office"))
     assert all(p["wall_id"] is None for k in ("doors", "windows") for p in orphan[k])
-    assert portals_xml(orphan) == portals_xml(compile_twin(roomplan.load(REAL / "amal.json", "amal")))
+    assert portals_xml(orphan) == portals_xml(compile_twin(roomplan.load(FIXTURES / "office.json", "office")))
 
 
-def test_portal_geoms_never_collide(synthetic, amal):
-    for twin in (synthetic, amal):
+def test_portal_geoms_never_collide(synthetic, office):
+    for twin in (synthetic, office):
         m = _model(twin)
         gs = [g for parts in _portal_geoms(m).values() for g in parts.values()]
         assert gs
@@ -217,10 +217,10 @@ def test_portal_geoms_never_collide(synthetic, amal):
         assert all(m.geom_bodyid[g] == 0 for g in gs)  # on the world body: no mass, no new body or joint
 
 
-def test_rest_of_the_scene_is_unchanged(amal):
+def test_rest_of_the_scene_is_unchanged(office):
     """Strip the portal geoms from the MJCF and what is left is the scene built without doors, windows or openings."""
     for kw in ({}, {"n_people": 2, "seed": 3}):
-        full, bare = build_mjcf(amal, BASE, **kw), build_mjcf(_bare(amal), BASE, **kw)
+        full, bare = build_mjcf(office, BASE, **kw), build_mjcf(_bare(office), BASE, **kw)
         assert len(PORTAL_TAG.findall(full)) == 15 and not PORTAL_TAG.findall(bare)
         assert PORTAL_TAG.sub("", full) == bare
 
@@ -231,12 +231,12 @@ def test_rooms_without_portals_get_none():
     assert not _portal_geoms(_model(hero, HERO_BASE))
 
 
-def test_physics_is_unchanged(amal):
+def test_physics_is_unchanged(office):
     """A cup dropped through the closed door's knob falls to the floor, no contact ever involves a portal geom, and
     with the arm driven at random every joint and object follows the same trajectory, to the bit, as in the room
     without doors and windows."""
-    knob = _model(amal).geom("door0_knob").pos
-    twin = copy.deepcopy(amal)
+    knob = _model(office).geom("door0_knob").pos
+    twin = copy.deepcopy(office)
     twin["objects"].append({"id": "cup_drop", "catalog_id": "cup", "label": "cup", "size": [0.07, 0.07, 0.09],
                             "position": [float(knob[0]), 0.09, float(knob[2])], "yaw": 0.0})  # the room is y > 0
     runs = []
@@ -272,11 +272,11 @@ def test_authored_door_without_ids_goes_on_the_nearest_wall():
     _check_on_wall(m, d, geoms[("door", 0)], wall, _world_extent(wall, 1.55, 2.45), (0.0, 2.1))
 
 
-def test_portals_show_in_renders(amal):
+def test_portals_show_in_renders(office):
     """Seen from inside the room and from behind the wall, the doors and the window change part of the picture."""
     cam = '<camera name="behind" pos="1.6 -2.2 1.4" xyaxes="1 0 0 0 0.2 1" fovy="60"/></worldbody>'
     frames = []
-    for t in (amal, _bare(amal)):
+    for t in (office, _bare(office)):
         m = mujoco.MjModel.from_xml_string(build_mjcf(t, BASE).replace("</worldbody>", cam))
         d = mujoco.MjData(m)
         mujoco.mj_forward(m, d)

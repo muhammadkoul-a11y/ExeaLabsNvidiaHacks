@@ -17,7 +17,7 @@ APPLE_CATEGORIES = ("bathtub", "bed", "chair", "dishwasher", "fireplace", "oven"
                     "sofa", "stairs", "storage", "stove", "table", "television", "toilet", "washerDryer")
 FLOOR_Y = -1.4
 W, D, H = 6.0, 5.0, 2.5
-REAL = REPO / "tests" / "fixtures" / "roomplan"
+FIXTURES = REPO / "tests" / "fixtures" / "roomplan"
 
 
 def _t(x, y, z, yaw=0.0):
@@ -107,10 +107,10 @@ def _seg_dist(p, w):
     return math.dist(p, [x0 + t * dx, y0 + t * dy])
 
 
-@pytest.mark.parametrize("name", ["amal", "shopyseek"])
-def test_real_export_portals_sit_on_their_walls(name):
-    raw = json.loads((REAL / f"{name}.json").read_text())
-    b = roomplan.load(REAL / f"{name}.json", name)
+@pytest.mark.parametrize("name", ["office", "study"])
+def test_authored_fixture_portals_sit_on_their_walls(name):
+    raw = json.loads((FIXTURES / f"{name}.json").read_text())
+    b = roomplan.load(FIXTURES / f"{name}.json", name)
     walls = {w["id"]: w for w in b["walls"]}
     for key in ("doors", "windows", "openings"):
         assert len(b[key]) == len(raw[key])
@@ -118,7 +118,7 @@ def test_real_export_portals_sit_on_their_walls(name):
             assert p["wall_id"] in walls
             assert _seg_dist(p["position"][:2], walls[p["wall_id"]]) <= 0.02
             assert 0 < p["position"][2] - p["size"][2] / 2 + 0.05  # sill at or above the floor
-    if name == "amal":
+    if name == "office":
         assert [d["is_open"] for d in b["doors"]] == [False, True]
 
 
@@ -141,9 +141,9 @@ def test_polygon_floor_sets_extent():
     assert doc["room"]["floor"][0]["pos"] == pytest.approx([(W + 1) / 2, D / 2, 0.0])
 
 
-@pytest.mark.parametrize("name", ["amal", "shopyseek"])
-def test_real_export_polygon_floor_matches_walls(name):
-    b = roomplan.load(REAL / f"{name}.json", name)
+@pytest.mark.parametrize("name", ["office", "study"])
+def test_authored_fixture_polygon_floor_matches_walls(name):
+    b = roomplan.load(FIXTURES / f"{name}.json", name)
     assert len(b["floors"]) == 1 and len(b["floors"][0]["corners"]) == 4
     xs = [c[0] for c in b["floors"][0]["corners"]]
     ys = [c[1] for c in b["floors"][0]["corners"]]

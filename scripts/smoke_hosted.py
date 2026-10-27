@@ -17,6 +17,7 @@ import time
 import urllib.error
 import urllib.request
 import uuid
+from http.cookiejar import CookieJar
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
@@ -28,12 +29,14 @@ class Smoke:
     def __init__(self, base: str, timeout: float = 30.0):
         self.base, self.timeout = base.rstrip("/"), timeout
         self.results: list[dict] = []
+        # one visitor: a --public server shows a job only to the cookie it set on the upload
+        self.opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(CookieJar()))
 
     def request(self, method: str, path: str, body: bytes | None = None, headers: dict | None = None):
         """(status, headers, body bytes); HTTP errors are returned, not raised. A network failure gives status 0."""
         req = urllib.request.Request(self.base + path, data=body, method=method, headers=headers or {})
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as r:
+            with self.opener.open(req, timeout=self.timeout) as r:
                 return r.status, dict(r.headers), r.read()
         except urllib.error.HTTPError as e:
             return e.code, dict(e.headers or {}), e.read()
@@ -123,6 +126,12 @@ def main(argv=None) -> int:
     a = ap.parse_args(argv)
     if not a.url.startswith(("http://", "https://")):
         ap.error("url must start with http:// or https://")
+    if not a.timeout > 0:
+        ap.error("--timeout must be above 0")
+    if not a.wait >= 0:
+        ap.error("--wait must be 0 or more")
+    if not Path(a.scan).is_file():
+        ap.error(f"--scan {a.scan} is not a file")
     s = Smoke(a.url, a.timeout)
     ok = s.run(Path(a.scan).read_bytes(), wait=a.wait, require_healthz=a.require_healthz)
     if a.json:

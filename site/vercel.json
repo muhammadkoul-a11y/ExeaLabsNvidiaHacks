@@ -1,5 +1,11 @@
 {
   "cleanUrls": true,
+  "functions": {
+    "api/readers.mjs": { "includeFiles": "data/readers-lines.json", "maxDuration": 10 }
+  },
+  "redirects": [
+    { "source": "/readers/", "destination": "/readers", "permanent": true }
+  ],
   "headers": [
     { "source": "/data/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=3600" }] },
     { "source": "/(vendor|fonts|motion)/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }] }

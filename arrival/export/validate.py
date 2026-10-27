@@ -12,6 +12,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 META = ("info.json", "tasks.jsonl", "episodes.jsonl", "episodes_stats.jsonl", "stats.json", "modality.json", "embodiment.json")
+ROW_KEYS = {"episodes.jsonl": ("episode_index", "length"), "tasks.jsonl": ("task_index", "task")}
 DTYPES = {
     "observation.state": pa.list_(pa.float32()), "action": pa.list_(pa.float32()), "timestamp": pa.float32(),
     "annotation.human.task_description": pa.int64(), "task_index": pa.int64(), "episode_index": pa.int64(),
@@ -23,6 +24,18 @@ VIDEO_SAMPLE = 3  # mp4s fully decoded (first, last, middle); the rest are exist
 
 def _jsonl(path: Path) -> list[dict]:
     return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+
+
+def meta_shape_error(name: str, rows: list) -> str | None:
+    """Why a parsed meta file (rows: one per JSONL line, or [the object]) is not the shape the checks read."""
+    for i, row in enumerate(rows):
+        where = f"meta/{name} line {i + 1}" if name.endswith(".jsonl") else f"meta/{name}"
+        if not isinstance(row, dict):
+            return f"{where} is a JSON {type(row).__name__}, not an object"
+        missing = [k for k in ROW_KEYS.get(name, ()) if k not in row]
+        if missing:
+            return f"{where} has no {', '.join(missing)}"
+    return None
 
 
 def _check_slices(modality: dict, features: dict, errors: list[str]) -> None:
@@ -68,9 +81,11 @@ def validate(root: str | Path) -> list[str]:
         return [f"missing meta/{m}" for m in missing]
     for m in META:  # a run killed while writing meta leaves truncated JSON; report it instead of a traceback
         try:
-            _jsonl(root / "meta" / m) if m.endswith(".jsonl") else json.loads((root / "meta" / m).read_text())
+            rows = _jsonl(root / "meta" / m) if m.endswith(".jsonl") else [json.loads((root / "meta" / m).read_text())]
         except ValueError as e:
             return [f"meta/{m} is not valid JSON ({e})"]
+        if err := meta_shape_error(m, rows):
+            return [err]
     info = json.loads((root / "meta" / "info.json").read_text())
     modality = json.loads((root / "meta" / "modality.json").read_text())
     features = info.get("features", {})

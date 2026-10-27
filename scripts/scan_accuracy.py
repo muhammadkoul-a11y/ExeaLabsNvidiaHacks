@@ -17,9 +17,16 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from arrival.scan import bundle  # noqa: E402
+from arrival.scan import bundle, roomplan  # noqa: E402
 from arrival.twin.accuracy import MeasurementError, compare, load_measurements  # noqa: E402
 from arrival.twin.compile import compile_twin  # noqa: E402
+
+
+def load_scan(d: Path) -> dict:
+    """scans/<room>/scan.json, or the roomplan.json that scripts/intake_scan.py lands a new scan with."""
+    if (d / "scan.json").is_file() or not (d / "roomplan.json").is_file():
+        return bundle.load_room(d.name, d.parent)
+    return roomplan.load(d / "roomplan.json", d.name)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -27,6 +34,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("rooms", nargs="*", type=Path, help="room directories (default: every one under scans/)")
     args = ap.parse_args(argv)
     dirs = args.rooms or sorted(p for p in (ROOT / "scans").glob("*") if p.is_dir())
+    missing = [str(d) for d in dirs if not d.is_dir()]
+    if missing:
+        ap.error(f"no such room folder: {', '.join(missing)}")
     failed = measured = 0
     for d in dirs:
         mfile = d / "measurements.json"
@@ -35,7 +45,7 @@ def main(argv: list[str] | None = None) -> int:
             continue
         measured += 1
         try:
-            res = compare(compile_twin(bundle.load_room(d.name, d.parent)), load_measurements(mfile))
+            res = compare(compile_twin(load_scan(d)), load_measurements(mfile))
         except (MeasurementError, ValueError, KeyError) as e:
             print(f"{d.name}: ERROR {e}")
             failed += 1

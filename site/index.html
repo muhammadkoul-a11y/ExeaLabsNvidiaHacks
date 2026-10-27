@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Arrival: scan a room once, get robot training data for that room</title>
-<meta name="description" content="Arrival turns one scan of a kitchen into a physics twin, simulates a robot arm and walking people in it, and writes the runs as a GR00T-format dataset. Every number on the page comes from the real export. The room is an authored sample; no real kitchen has been scanned yet.">
+<meta name="description" content="Arrival turns one scan of a kitchen into a physics twin, simulates a robot arm and walking people in it, and writes the runs as a GR00T-format dataset. Every number on the page comes from the real export. The room on this page is an authored sample.">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#EFE9DC" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#111418" media="(prefers-color-scheme: dark)">
@@ -252,7 +252,7 @@
     <ol class="steps" id="steps">
       <li class="step" data-step="0">
         <p class="mono step__n">Step 1</p><h3>Scan the room</h3>
-        <p>An iPhone LiDAR scan (Apple RoomPlan) captures the walls, counters, sink, stove and fridge. The twin on this page comes from the authored sample, since no real kitchen has been scanned in this repository.</p>
+        <p>An iPhone LiDAR scan (Apple RoomPlan) captures the walls, counters, sink, stove and fridge. The twin on this page comes from the authored sample. One real kitchen, scanned with the capture app on an iPhone 13 Pro Max, has run through the pipeline; it has no tape measurements yet.</p>
       </li>
       <li class="step" data-step="1">
         <p class="mono step__n">Step 2</p><h3>Compile the twin</h3>
@@ -370,11 +370,30 @@
 
   <div class="measured" id="measured"></div>
 
+  <div class="two" id="models">
+    <section class="box" aria-labelledby="boxNemotron">
+      <h3 id="boxNemotron" class="box__h mono">Nemotron on Nebius Token Factory plans each task</h3>
+      <ul class="list">
+        <li>Nemotron 3 Super turns an instruction and the room's inventory into a task plan, live, in about 2.6 s. Nemotron 3.5 Lightning writes the training and held-out wordings.</li>
+        <li>On 15 indirect requests such as "let me check if we're out of milk", the planner picked the right task 13 times. A keyword parser got 6.</li>
+        <li>On 54 wordings Lightning wrote, it was 52 against 47. The requests were written by us, not sampled from users.</li>
+      </ul>
+    </section>
+    <section class="box" aria-labelledby="boxTavily">
+      <h3 id="boxTavily" class="box__h mono">Tavily looks up each scanned appliance</h3>
+      <ul class="list">
+        <li>Every appliance found in the scan is researched live, and the findings go into the planner's prompt.</li>
+        <li>For the fridge it returns the federal limit on the force needed to open an empty door, 66.7 N (15 lb), citing the eCFR and GE.</li>
+        <li>The safety rules shown beside each answer are our own table, and are labelled as such.</li>
+      </ul>
+    </section>
+  </div>
+
   <!-- revision schedule: filled in by js/todo.js from data/todo.json -->
   <section class="sched" id="schedWrap" aria-labelledby="schedTitle" hidden>
     <p class="mono sched__tag">Revision schedule <span id="schedAsOf"></span></p>
     <h3 class="sched__h" id="schedTitle">What is built, and what is left</h3>
-    <p class="sched__lead">GR00T N1.7 has been fine-tuned on this dataset: 39 of 48 against 26 of 48 for the clean-data baseline, on small samples, with no base-GR00T or generic-RoboCasa cell. No real kitchen has been scanned and run through the pipeline, and the room on this page is authored. The hosted demo is not deployed. The pitch is the rendered 24-second video, not a studio recording; it is not on YouTube yet. Below is every open task, grouped by what it needs. A diamond is filled only when its pull request is merged on main.</p>
+    <p class="sched__lead">GR00T N1.7 has been fine-tuned on this dataset: 39 of 48 against 26 of 48 for the clean-data baseline, on small samples, with no base-GR00T or generic-RoboCasa cell. One real kitchen has been scanned and run through the pipeline, but it has no tape measurements, and the room on this page is authored. The hosted demo is not deployed. The pitch is the rendered 24-second video, not a studio recording; it is not on YouTube yet. Below is every open task, grouped by what it needs. A diamond is filled only when its pull request is merged on main.</p>
     <div class="sched__sum" id="schedSum"></div>
     <div class="chips sched__chips" id="schedChips" role="group" aria-label="Filter the schedule by status"></div>
     <p class="mono sched__shown" id="schedShown" role="status" aria-live="polite"></p>
@@ -386,7 +405,7 @@
 <section class="close" id="close" data-chapter="close" aria-labelledby="clTitle">
   <p class="mono chapter__tag">06 &middot; Close <span>Sheet A-06</span></p>
   <h2 class="close__title" id="clTitle">One scan in, one dataset for that room out.</h2>
-  <p class="close__lead">The twin, physics and dataset on this page were produced by the pipeline in this repository. A GR00T fine-tune and a scan of a real kitchen are both still missing, so this is a working pipeline without a result.</p>
+  <p class="close__lead">The twin, physics and dataset on this page were produced by the pipeline in this repository. GR00T fine-tuned on this room's data scored 39 of 48 against 26 of 48 for the clean-data baseline, on small samples. The held-out comparison and measured real kitchens are still missing.</p>
   <div class="close__actions">
     <button class="btn" id="toTop" type="button">Back to the plan</button>
   </div>

@@ -143,16 +143,18 @@ def test_load_dotenv_reads_every_file(monkeypatch, tmp_path):
     os.environ.pop("UNRELATED", None)
 
 
-def test_shipped_cache_does_not_shadow_the_api(monkeypatch):
-    # the cache that ships in the package must not answer the standard appliance queries,
-    # or a run with a TAVILY_API_KEY never calls Tavily for them
-    from arrival.tasks.tavily_research import DEFAULT_CACHE
+def test_default_cache_is_under_out_not_in_the_package(tmp_path, monkeypatch):
+    # a cache in the package answered the standard appliance queries, so a run with a TAVILY_API_KEY never
+    # called Tavily for them; the default now lives in the run's out/ folder
+    import arrival
 
+    monkeypatch.chdir(tmp_path)
     calls = []
     monkeypatch.setattr("arrival.tasks.tavily_research.tavily_search",
                         lambda q, **k: calls.append(q) or {"answer": "live", "results": []})
-    agent = TavilyResearchAgent(log=lambda *_: None, cache_path=DEFAULT_CACHE)
-    monkeypatch.setattr(agent, "_save_cache", lambda: None)
+    agent = TavilyResearchAgent(log=lambda *_: None)
     for fixture in ("dishwasher", "stove", "fridge", "microwave", "sink"):
         assert agent.research_appliance(fixture)["source"] == "tavily_api"
     assert len(calls) == 5
+    assert (tmp_path / "out" / "cache" / "tavily_cache.json").is_file()
+    assert not list((Path(arrival.__file__).parent / "models").glob("*cache*.json"))

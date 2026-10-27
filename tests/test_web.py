@@ -182,7 +182,7 @@ def test_capture_app_upload_reaches_worker(server):
 
     srv, out = server
     boundary = "ArrivalBoundary-3F2504E0-4F89-11D3-9A0C-0305E82C3301"
-    payload = (REPO / "tests" / "fixtures" / "roomplan" / "amal.json").read_bytes()
+    payload = (REPO / "tests" / "fixtures" / "roomplan" / "office.json").read_bytes()
     body = (
         f"--{boundary}\r\n"
         'Content-Disposition: form-data; name="scan"; filename="kitchen_a.json"\r\n'

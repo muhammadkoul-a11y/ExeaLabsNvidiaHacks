@@ -7,7 +7,7 @@ _spec = importlib.util.spec_from_file_location("smoke_live_apis", REPO / "script
 smoke = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(smoke)
 
-KEYS = ("TOKEN_FACTORY_API_KEY", "TAVILY_API_KEY")
+KEYS = ("TOKEN_FACTORY_API_KEY", "TAVILY_API_KEY", "NEMOTRON_OMNI_MODEL")
 
 
 def _env(monkeypatch, tmp_path, **set_):
@@ -52,3 +52,52 @@ def test_a_failed_call_is_exit_1(tmp_path, monkeypatch):
     out = tmp_path / "r.json"
     assert smoke.main(["--out", str(out)]) == 1
     assert json.loads(out.read_text())["checks"]["token_factory_planner"]["source"] == "rule_based"
+
+
+def test_planner_benchmark_without_a_key_is_exit_2(monkeypatch, capsys):
+    spec = importlib.util.spec_from_file_location("planner_benchmark", REPO / "scripts" / "planner_benchmark.py")
+    bench = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(bench)
+    monkeypatch.setenv("ARRIVAL_DOTENV", "0")
+    monkeypatch.delenv("TOKEN_FACTORY_API_KEY", raising=False)
+    assert bench.main([]) == 2
+    assert "TOKEN_FACTORY_API_KEY" in capsys.readouterr().err
+    assert bench.right({"family": "open_fridge", "object": None}, "open_fridge", None)
+    assert not bench.right({"family": "counter_to_sink", "object": "bowl_1"}, "counter_to_sink", "mug_1")
+
+
+def test_a_failed_wordings_call_says_why(tmp_path, monkeypatch, capsys):
+    # the planner check keeps its log; the wordings check printed FAIL with no reason at all
+    import arrival.models.token_factory as tf
+
+    _env(monkeypatch, tmp_path, TOKEN_FACTORY_API_KEY="k", NEMOTRON_SUPER_MODEL="m")
+    monkeypatch.delenv("NEMOTRON_LIGHTNING_MODEL", raising=False)
+    real = tf.complete
+    plan = '{"family": "counter_to_sink", "object": "mug_1", "target": "sink_1"}'
+    monkeypatch.setattr(tf, "complete", lambda messages, role="super", **k: plan if role == "super"
+                        else real(messages, role=role, **k))
+    out = tmp_path / "r.json"
+    assert smoke.main(["--out", str(out)]) == 1
+    wordings = json.loads(out.read_text())["checks"]["token_factory_wordings"]
+    assert wordings["source"] == "template_fallback"
+    assert "NEMOTRON_LIGHTNING_MODEL" in wordings["error"]
+    assert "NEMOTRON_LIGHTNING_MODEL" in capsys.readouterr().out
+
+
+def test_detect_check_places_the_fixture_mug_and_only_runs_what_is_asked(tmp_path, monkeypatch):
+    _env(monkeypatch, tmp_path, TOKEN_FACTORY_API_KEY="k", NEMOTRON_SUPER_MODEL="m", NEMOTRON_LIGHTNING_MODEL="m",
+         NEMOTRON_OMNI_MODEL="nvidia/vl")
+    calls = []
+
+    def reply(messages, role="super", **k):  # the same box in every frame: the empty room must still place nothing
+        calls.append(role)
+        return '{"objects": [{"label": "mug", "box": [57, 38, 69, 54], "confidence": 0.9}]}'
+
+    monkeypatch.setattr("arrival.models.token_factory.complete", reply)
+    out = tmp_path / "r.json"
+    assert smoke.main(["--only", "token_factory_detect", "--out", str(out)]) == 0
+    checks = json.loads(out.read_text())["checks"]
+    assert list(checks) == ["token_factory_detect"] and calls == ["omni"] * 6
+    c = checks["token_factory_detect"]
+    assert c["model"] == "nvidia/vl" and c["reply_sources"] == {"token_factory": 6}
+    assert c["mug"]["position_error_m"] < 0.03 and c["empty"]["objects"] == []

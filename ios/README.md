@@ -53,8 +53,10 @@ only with the occupant's consent, and look through them for people, screens, doc
 Scans live in the app's Documents folder (`scans/<room>_<unix time>/`), which the Files app shows under
 *On My iPhone → Arrival Capture*.
 
-To commit a scan for CAP-3, AirDrop `roomplan.json` to the Mac and put it at `scans/<room_id>/roomplan.json`;
-`tests/test_scans.py` picks it up.
+To commit a scan for CAP-3, AirDrop the scan folder to the Mac and land it with `scripts/intake_scan.py`
+(`docs/SCANNING.md`, Export and file layout): it copies `roomplan.json` to `scans/<room_id>/`, re-encodes the
+reference photos without EXIF, writes the notes and tape measurements and runs the geometry checks;
+`tests/test_scans.py` then picks the room up.
 
 ## Notes
 

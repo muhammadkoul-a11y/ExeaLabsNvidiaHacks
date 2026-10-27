@@ -75,7 +75,16 @@ def load_twin(scan_dir: Path, twin_path: str | Path | None = None) -> tuple[dict
         p = Path(twin_path)
         if not p.is_file():
             raise RealismError(f"--twin {p} does not exist")
-        return json.loads(p.read_text(encoding="utf-8")), str(p)
+        try:
+            twin = json.loads(p.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as e:
+            raise RealismError(f"--twin {p} is not readable JSON: {e}") from e
+        missing = [k for k in ("walls", "fixtures", "objects")
+                   if not isinstance(twin, dict) or not isinstance(twin.get(k), list)]
+        if missing:
+            raise RealismError(f"--twin {p} is not a compiled twin (no {', '.join(missing)} list); pass "
+                               f"out/twins/<room_id>/twin.json")
+        return twin, str(p)
     for name, load in (("roomplan.json", lambda p: roomplan.load(p, room)), ("scan.json", scan_bundle.load)):
         p = scan_dir / name
         if p.is_file():
@@ -95,21 +104,32 @@ def _nearest(a: np.ndarray, size: tuple[int, int]) -> np.ndarray:
     return a[np.ix_(ys, xs)]
 
 
+def _open_image(path: Path, mode: str, frame_id: str):
+    from PIL import Image
+
+    try:
+        with Image.open(path) as im:
+            return im.convert(mode)
+    except OSError as e:
+        raise RealismError(f"frame {frame_id}: {path} is not a readable image: {e}") from e
+
+
 def load_frame(m: rgbd.Manifest, f: rgbd.Frame, max_side: int = MAX_SIDE, min_confidence: int = MIN_CONFIDENCE) -> dict:
     """One manifest frame as the dict evaluate_frames takes: RGB, depth in metres, valid-depth mask and K at the
     working size, and cam_to_room in OpenCV axes (the convention of eval/realism.py)."""
     from PIL import Image
 
-    with Image.open(f.rgb) as im:
-        rgb = im.convert("RGB")
+    rgb = _open_image(f.rgb, "RGB", f.id)
     if rgb.size != tuple(m.rgb_size):
         raise RealismError(f"frame {f.id}: rgb is {rgb.size[0]}x{rgb.size[1]}, the manifest says "
                            f"{m.rgb_size[0]}x{m.rgb_size[1]}")
-    depth = rgbd.load_depth(m, f)
+    try:
+        depth = rgbd.load_depth(m, f)
+    except (OSError, EOFError, ValueError) as e:
+        raise RealismError(f"frame {f.id}: depth {f.depth} cannot be used: {e}") from e
     valid = np.isfinite(depth) & (depth > 0)
     if f.confidence is not None:
-        with Image.open(f.confidence) as im:
-            conf = np.asarray(im.convert("L"))
+        conf = np.asarray(_open_image(f.confidence, "L", f.id))
         if conf.shape != depth.shape:
             raise RealismError(f"frame {f.id}: confidence map is {conf.shape[::-1]}, depth is {depth.shape[::-1]}")
         valid &= conf >= min_confidence

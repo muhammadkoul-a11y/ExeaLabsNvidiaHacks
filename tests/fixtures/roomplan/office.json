@@ -1,0 +1,457 @@
+{
+  "version": 2,
+  "story": 0,
+  "walls": [
+    {
+      "identifier": "WALL-NORTH-01",
+      "category": {
+        "wall": {}
+      },
+      "confidence": {
+        "high": {}
+      },
+      "dimensions": [
+        5.0,
+        2.5,
+        0
+      ],
+      "transform": [
+        1.0,
+        0,
+        -0.0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0.0,
+        0,
+        1.0,
+        0,
+        0,
+        0.050000000000000044,
+        -2.0,
+        1
+      ],
+      "parentIdentifier": null,
+      "completedEdges": [],
+      "polygonCorners": [],
+      "story": 0,
+      "curve": null
+    },
+    {
+      "identifier": "WALL-SOUTH-01",
+      "category": {
+        "wall": {}
+      },
+      "confidence": {
+        "high": {}
+      },
+      "dimensions": [
+        5.0,
+        2.5,
+        0
+      ],
+      "transform": [
+        1.0,
+        0,
+        -0.0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0.0,
+        0,
+        1.0,
+        0,
+        0,
+        0.050000000000000044,
+        2.0,
+        1
+      ],
+      "parentIdentifier": null,
+      "completedEdges": [],
+      "polygonCorners": [],
+      "story": 0,
+      "curve": null
+    },
+    {
+      "identifier": "WALL-EAST-01",
+      "category": {
+        "wall": {}
+      },
+      "confidence": {
+        "high": {}
+      },
+      "dimensions": [
+        4.0,
+        2.5,
+        0
+      ],
+      "transform": [
+        6.123233995736766e-17,
+        0,
+        -1.0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1.0,
+        0,
+        6.123233995736766e-17,
+        0,
+        2.5,
+        0.050000000000000044,
+        0,
+        1
+      ],
+      "parentIdentifier": null,
+      "completedEdges": [],
+      "polygonCorners": [],
+      "story": 0,
+      "curve": null
+    },
+    {
+      "identifier": "WALL-WEST-01",
+      "category": {
+        "wall": {}
+      },
+      "confidence": {
+        "high": {}
+      },
+      "dimensions": [
+        4.0,
+        2.5,
+        0
+      ],
+      "transform": [
+        6.123233995736766e-17,
+        0,
+        -1.0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1.0,
+        0,
+        6.123233995736766e-17,
+        0,
+        -2.5,
+        0.050000000000000044,
+        0,
+        1
+      ],
+      "parentIdentifier": null,
+      "completedEdges": [],
+      "polygonCorners": [],
+      "story": 0,
+      "curve": null
+    }
+  ],
+  "floors": [
+    {
+      "identifier": "FLOOR-01",
+      "category": {
+        "floor": {}
+      },
+      "confidence": {
+        "high": {}
+      },
+      "dimensions": [
+        5.0,
+        4.0,
+        0
+      ],
+      "transform": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        -1.2,
+        0,
+        1
+      ],
+      "polygonCorners": [
+        [
+          -2.5,
+          -2.0,
+          0
+        ],
+        [
+          2.5,
+          -2.0,
+          0
+        ],
+        [
+          2.5,
+          2.0,
+          0
+        ],
+        [
+          -2.5,
+          2.0,
+          0
+        ]
+      ],
+      "story": 0
+    }
+  ],
+  "doors": [
+    {
+      "identifier": "DOOR-01",
+      "category": {
+        "door": {
+          "isOpen": false
+        }
+      },
+      "confidence": {
+        "high": {}
+      },
+      "dimensions": [
+        0.8,
+        2.1,
+        0
+      ],
+      "transform": [
+        1.0,
+        0,
+        -0.0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0.0,
+        0,
+        1.0,
+        0,
+        0.5,
+        -0.1499999999999999,
+        2.0,
+        1
+      ],
+      "parentIdentifier": "WALL-SOUTH-01",
+      "story": 0
+    },
+    {
+      "identifier": "DOOR-02",
+      "category": {
+        "door": {
+          "isOpen": true
+        }
+      },
+      "confidence": {
+        "high": {}
+      },
+      "dimensions": [
+        0.8,
+        2.1,
+        0
+      ],
+      "transform": [
+        1.0,
+        0,
+        -0.0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0.0,
+        0,
+        1.0,
+        0,
+        -1.0,
+        -0.1499999999999999,
+        2.0,
+        1
+      ],
+      "parentIdentifier": "WALL-SOUTH-01",
+      "story": 0
+    }
+  ],
+  "windows": [
+    {
+      "identifier": "WINDOW-01",
+      "category": {
+        "window": {}
+      },
+      "confidence": {
+        "high": {}
+      },
+      "dimensions": [
+        1.5,
+        1.2,
+        0
+      ],
+      "transform": [
+        6.123233995736766e-17,
+        0,
+        -1.0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1.0,
+        0,
+        6.123233995736766e-17,
+        0,
+        2.5,
+        0.40000000000000013,
+        0.0,
+        1
+      ],
+      "parentIdentifier": "WALL-EAST-01",
+      "story": 0
+    }
+  ],
+  "openings": [],
+  "objects": [
+    {
+      "identifier": "TABLE-01",
+      "category": {
+        "table": {}
+      },
+      "confidence": {
+        "high": {}
+      },
+      "dimensions": [
+        2.0,
+        0.75,
+        1.0
+      ],
+      "transform": [
+        1.0,
+        0,
+        -0.0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0.0,
+        0,
+        1.0,
+        0,
+        0.0,
+        -0.825,
+        0.0,
+        1
+      ],
+      "story": 0
+    },
+    {
+      "identifier": "CHAIR-01",
+      "category": {
+        "chair": {}
+      },
+      "confidence": {
+        "high": {}
+      },
+      "dimensions": [
+        0.55,
+        0.85,
+        0.55
+      ],
+      "transform": [
+        1.0,
+        0,
+        -0.0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0.0,
+        0,
+        1.0,
+        0,
+        0.0,
+        -0.7749999999999999,
+        -0.75,
+        1
+      ],
+      "story": 0
+    },
+    {
+      "identifier": "CHAIR-02",
+      "category": {
+        "chair": {}
+      },
+      "confidence": {
+        "high": {}
+      },
+      "dimensions": [
+        0.55,
+        0.85,
+        0.55
+      ],
+      "transform": [
+        1.0,
+        0,
+        -0.0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0.0,
+        0,
+        1.0,
+        0,
+        0.8,
+        -0.7749999999999999,
+        0.45,
+        1
+      ],
+      "story": 0
+    },
+    {
+      "identifier": "STORAGE-01",
+      "category": {
+        "storage": {}
+      },
+      "confidence": {
+        "high": {}
+      },
+      "dimensions": [
+        1.2,
+        1.8,
+        0.45
+      ],
+      "transform": [
+        6.123233995736766e-17,
+        0,
+        -1.0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1.0,
+        0,
+        6.123233995736766e-17,
+        0,
+        -2.2,
+        -0.29999999999999993,
+        0.0,
+        1
+      ],
+      "story": 0
+    }
+  ],
+  "sections": []
+}

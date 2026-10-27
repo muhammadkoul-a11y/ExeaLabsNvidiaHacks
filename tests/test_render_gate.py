@@ -1,11 +1,17 @@
-from conftest import REPO
+import pytest
+from conftest import REPO, SHARD_ENV
 
 pytest_plugins = ["pytester"]
 
 
-def test_no_render_covers_shared_fixtures(pytester, monkeypatch):
-    # Nested pytest runs must not inherit the parent CI shard selection.
-    monkeypatch.delenv("ARRIVAL_TEST_SHARD", raising=False)
+@pytest.fixture(autouse=True)
+def _unsharded(monkeypatch):
+    # the inner runs load the real conftest and inherit the env; under CI's ARRIVAL_TEST_SHARD=3/3 their
+    # one-file suite falls in shard 1 and every inner test is deselected
+    monkeypatch.delenv(SHARD_ENV, raising=False)
+
+
+def test_no_render_covers_shared_fixtures(pytester):
     pytester.makeconftest((REPO / "tests" / "conftest.py").read_text(encoding="utf-8"))
     pytester.makeini("[pytest]\nmarkers = render: needs an OpenGL context\n")
     pytester.makepyfile(mujoco="""
@@ -70,9 +76,7 @@ def test_no_render_covers_shared_fixtures(pytester, monkeypatch):
     assert (pytester.path / "child-process-called").exists()
 
 
-def test_no_render_precedes_plugin_session_fixture(pytester, monkeypatch):
-    # Nested pytest runs must not inherit the parent CI shard selection.
-    monkeypatch.delenv("ARRIVAL_TEST_SHARD", raising=False)
+def test_no_render_precedes_plugin_session_fixture(pytester):
     pytester.makeconftest((REPO / "tests" / "conftest.py").read_text(encoding="utf-8"))
     pytester.makepyfile(mujoco="""
         from pathlib import Path

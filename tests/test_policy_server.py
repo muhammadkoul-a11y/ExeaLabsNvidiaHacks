@@ -220,6 +220,36 @@ def test_eval_vla_against_hold_mock(twin, monkeypatch, tmp_path):
     assert rep["totals"]["errors"] == 0 and rep["totals"]["episodes"] == 1
 
 
+
+def test_eval_report_records_which_server_answered(twin, monkeypatch, tmp_path):
+    """A report from the mock must not read like one from GR00T: the server's /health answer is kept."""
+    with MockPolicyServer() as srv:
+        monkeypatch.setenv("GR00T_POLICY_URL", srv.url)
+        rep = evaluate(twin, ["open_drawer"], 1, policy_name="vla", checkpoint_id="test-mock", people=0, res=64, out_dir=tmp_path,
+                       log=lambda *_: None)
+    assert rep["policy_server"] == {"ok": True, "server": "mock", "mode": "hold"}
+    saved = json.loads((tmp_path / "eval" / rep["run_id"] / "report.json").read_text(encoding="utf-8"))
+    assert saved["policy_server"] == rep["policy_server"]
+
+
+def test_eval_vla_server_without_health_still_runs(twin, monkeypatch, tmp_path):
+    class NoHealth(MockPolicyServer):
+        def __init__(self, *a, **k):
+            super().__init__(*a, **k)
+            handler = self.RequestHandlerClass
+
+            class H(handler):
+                def do_GET(self):
+                    self._send(404, {"error": "not found"})
+
+            self.RequestHandlerClass = H
+
+    with NoHealth() as srv:
+        monkeypatch.setenv("GR00T_POLICY_URL", srv.url)
+        rep = evaluate(twin, ["open_drawer"], 1, policy_name="vla", checkpoint_id="test-mock", people=0, res=64, out_dir=tmp_path,
+                       log=lambda *_: None)
+    assert rep["totals"]["errors"] == 0 and "404" in rep["policy_server"]["error"]
+
 def test_eval_vla_dead_server_takes_existing_failure_path(twin, monkeypatch, tmp_path):
     with MockPolicyServer(mode="fail_after_n", fail_after=2) as srv:
         monkeypatch.setenv("GR00T_POLICY_URL", srv.url)

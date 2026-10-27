@@ -2,6 +2,7 @@
 
     intake(room_id, roomplan_path, photos, measures=...)   # creates the folder, runs the checks
     validate_scan_dir(path)                                 # list of problems, empty when the folder is complete
+    check(room_id)                                          # validate_scan_dir plus the geometry checks
 
 The folder holds roomplan.json as exported, reference_N.jpg re-encoded without EXIF (GPS, device serial,
 timestamps) and downscaled to MAX_PHOTO_PX, notes.md from NOTES_TEMPLATE, and measurements.json, the
@@ -27,6 +28,7 @@ ROOM_ID = re.compile(r"[a-z0-9_]+")
 MAX_PHOTO_PX = 1600
 MIN_PHOTOS = 2
 GPS_IFD = 0x8825
+HEIF_BRANDS = {b"heic", b"heix", b"heim", b"heis", b"hevc", b"hevx", b"hevm", b"hevs", b"mif1", b"msf1"}
 MEASURES = ("counter_length", "counter_height", "sink_width")
 MAX_MEASURE_M = 20.0  # a tape value above this is almost certainly centimetres
 # notes.md key -> label shown in the template. Keys are what validate_scan_dir looks for.
@@ -106,6 +108,16 @@ def parse_measures(spec: str | dict | None) -> dict[str, float]:
                               f"{MAX_MEASURE_M:g} (a value in centimetres?)")
         out[k] = n
     return out
+
+
+def _is_heif(path: Path) -> bool:
+    """An iPhone's default photo format; Pillow has no HEIF decoder unless pillow-heif is installed."""
+    try:
+        with open(path, "rb") as f:
+            head = f.read(12)
+    except OSError:
+        return False
+    return head[4:8] == b"ftyp" and head[8:12] in HEIF_BRANDS
 
 
 def _photo_problems(path: Path) -> list[str]:
@@ -228,6 +240,27 @@ def _render(room_id: str, twin: dict, out_dir: Path) -> Path:
     return path
 
 
+def check(room_id: str, *, scans: str | Path | None = None) -> dict:
+    """Re-check an existing scans/<room_id>/ (a NO-GO intake whose notes were filled in since): validate_scan_dir
+    plus the same geometry checks intake ran. Returns {"dir", "go", "problems", "fixtures"}."""
+    if not ROOM_ID.fullmatch(room_id or ""):
+        raise IntakeError(f"room id {room_id!r} must be lowercase letters, digits and underscores only")
+    dest = (Path(scans) if scans else ROOT / "scans") / room_id
+    if not dest.is_dir():
+        raise IntakeError(f"{dest} does not exist; land the scan with intake first")
+    problems = validate_scan_dir(dest)
+    fixtures = []
+    try:
+        bundle = _load_roomplan(dest / "roomplan.json", room_id)
+    except IntakeError:
+        bundle = None  # validate_scan_dir already reported it
+    if bundle is not None:
+        report = _checks(bundle)
+        problems += report["problems"]
+        fixtures = [f"{f['id']} ({f['type']})" for f in report["twin"]["fixtures"]]
+    return {"dir": dest, "go": not problems, "problems": problems, "fixtures": fixtures}
+
+
 def intake(room_id: str, roomplan_path: str | Path, photos: list | None = None, *, scans: str | Path | None = None,
            no_photos: bool = False, location_type: str = "", phone: str = "", ios: str = "", lighting: str = "",
            clutter: str = "", measures: str | dict | None = None, out_dir: str | Path | None = None) -> dict:
@@ -248,6 +281,9 @@ def intake(room_id: str, roomplan_path: str | Path, photos: list | None = None, 
     bundle = _load_roomplan(plan, room_id)
     tape = parse_measures(measures)
     for p in photos:
+        if _is_heif(p):
+            raise IntakeError(f"photo {p} is HEIC/HEIF, which intake cannot read; convert it to JPEG, or "
+                              "take the photos with the iPhone's Settings > Camera > Formats set to Most Compatible")
         try:
             with Image.open(p) as im:
                 im.verify()

@@ -2,7 +2,7 @@
 
 Uses the Tavily Search API to gather real-world appliance manuals, hinge mechanisms,
 and operating guidelines, enriching the digital twin and informing Nemotron VLM planning.
-Maintains an offline cache in arrival/models/tavily_cache.json for network-free execution.
+Caches answers in out/cache/tavily_cache.json, so repeat runs need no network.
 """
 
 from __future__ import annotations
@@ -13,17 +13,17 @@ from typing import Any
 
 from arrival.models.tavily import TavilyNotConfigured, search as tavily_search
 
-DEFAULT_CACHE = Path(__file__).resolve().parents[1] / "models" / "tavily_cache.json"
+DEFAULT_CACHE = Path("out") / "cache" / "tavily_cache.json"  # under the run's out/, never in the package (see instructions.py)
 
 CANONICAL_APPLIANCES = ("dishwasher", "stove", "fridge", "microwave", "sink")
-APPLIANCE_QUERIES = {
-    "dishwasher": "residential kitchen dishwasher door latch mechanism and safe loading clearance",
-    "stove": "residential gas range cooktop burner safety and knob operation",
-    "gas_range": "residential gas range cooktop burner safety and knob operation",
-    "fridge": "residential refrigerator bottom freezer door handle and seal pull force",
-    "fridge_bottom_freezer": "residential refrigerator bottom freezer door handle and seal pull force",
-    "microwave": "residential kitchen microwave door push button and handle release",
-    "sink": "kitchen sink faucet lever mixing valve operation and splash containment",
+APPLIANCE_QUERIES = {  # picked by running candidates against the live API (Oct 26): these return concrete figures
+    "dishwasher": "dishwasher door open clearance depth inches",
+    "stove": "gas range safety clearance from burners and knob operation",
+    "gas_range": "gas range safety clearance from burners and knob operation",
+    "fridge": "how much force does it take to open a refrigerator door",
+    "fridge_bottom_freezer": "how much force does it take to open a refrigerator door",
+    "microwave": "how does a microwave door latch and interlock work",
+    "sink": "how to operate a single handle kitchen faucet hot and cold",
 }
 
 FALLBACK_KNOWLEDGE = {
@@ -162,7 +162,7 @@ class TavilyResearchAgent:
         canonical = next((k for k in CANONICAL_APPLIANCES if k in key), "appliance")
         query = APPLIANCE_QUERIES.get(key, APPLIANCE_QUERIES.get(canonical, f"residential {key} appliance safe robot operation"))
 
-        search_res = self.search(query)
+        search_res = self.search(query, search_depth="advanced")  # the basic depth answered "the sources do not say"
         fallback = FALLBACK_KNOWLEDGE.get(canonical, FALLBACK_KNOWLEDGE.get(key, {}))
 
         summary = search_res.get("answer") or fallback.get("summary", f"Standard {fixture_type} fixture.")
@@ -184,6 +184,7 @@ class TavilyResearchAgent:
             "summary": summary,
             "safety_guidelines": guidelines,
             "operating_steps": operating_steps,
+            "guidelines_source": "built_in_table",  # only the summary and sources come from Tavily
             "sources": sources,
         }
 

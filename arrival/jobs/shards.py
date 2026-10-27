@@ -306,9 +306,12 @@ def _merged_report(shards: list[dict], info: dict, skipped: dict, path: Path, n:
     for r in reps:
         for fam, v in r["families"].items():
             f = fams.setdefault(fam, {"attempts": 0, "successes": 0, "human_contacts": 0, "fridge_visits": 0,
-                                      "door_contacts": 0})
+                                      "door_contacts": 0, "seconds": 0.0})
             for k in f:
-                f[k] += v.get(k, 0)
+                if k == "seconds":  # a shard report written before per-family seconds makes the sum unknown
+                    f[k] = f[k] + v[k] if f[k] is not None and k in v else None
+                else:
+                    f[k] += v.get(k, 0)
     secs = sum(r["seconds"] for r in reps)
     succ = info["total_episodes"]
     attempts = info["arrival_attempts"]
@@ -319,7 +322,8 @@ def _merged_report(shards: list[dict], info: dict, skipped: dict, path: Path, n:
               "human_contacts": sum(r["human_contacts"] for r in reps),
               "fridge_visits": sum(r.get("fridge_visits", 0) for r in reps),
               "door_contacts": sum(r.get("door_contacts", 0) for r in reps),
-              "families": {k: {**v, "success_rate": round(v["successes"] / v["attempts"], 3)} for k, v in fams.items()
+              "families": {k: {**v, "seconds": None if v["seconds"] is None else round(v["seconds"], 2),
+                               "success_rate": round(v["successes"] / v["attempts"], 3)} for k, v in fams.items()
                            if v["attempts"]},
               "merged_shards": n}
     path.parent.mkdir(parents=True, exist_ok=True)

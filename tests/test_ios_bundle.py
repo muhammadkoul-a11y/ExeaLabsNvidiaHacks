@@ -122,7 +122,7 @@ def test_app_upload_body_with_frames_is_queued(bundle_check, recorded, tmp_path)
     # the body ArrivalAPI.writeMultipart builds, with a real RoomPlan export and the recorder's zip, is accepted
     tmp, _, _ = recorded
     boundary = "ArrivalBoundary-3F2504E0-4F89-11D3-9A0C-0305E82C3301"
-    scan = REPO / "tests" / "fixtures" / "roomplan" / "amal.json"
+    scan = REPO / "tests" / "fixtures" / "roomplan" / "office.json"
     subprocess.run([str(bundle_check), "multipart", boundary, str(scan), str(tmp / "frames.zip"), str(tmp_path / "body")],
                    check=True, capture_output=True, timeout=60)
     srv = make_server(port=0, out_dir=tmp_path / "out", scans_dir=REPO / "scans", rate_limit=0)

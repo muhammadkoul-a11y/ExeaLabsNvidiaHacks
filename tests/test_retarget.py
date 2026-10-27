@@ -6,7 +6,7 @@ import pytest
 mujoco = pytest.importorskip("mujoco")
 
 from arrival.export.validate import validate  # noqa: E402
-from arrival.generate.retarget import retarget  # noqa: E402
+from arrival.generate.retarget import main, retarget  # noqa: E402
 from arrival.scan.bundle import load_room  # noqa: E402
 from arrival.twin.compile import compile_twin  # noqa: E402
 
@@ -43,3 +43,23 @@ def test_small_out_of_reach_is_dropped_not_exported(twin, tmp_path):
     r = retarget(twin, tmp_path, offsets=[(0.0, 1.2, 0.0, 0.0)], res=64, log=lambda *_: None)
     assert r["report_data"]["successes"] == 0 and r["report_data"]["drop_reasons"]["unreachable"] == 1
     assert r["info"]["total_episodes"] == 0
+
+
+@pytest.mark.parametrize(
+    "args, message",
+    [
+        (["--room", "nope_room"], "no scan for room 'nope_room'"),
+        (["--attempts", "0"], "--attempts must be >= 1"),
+        (["--attempts", "-2"], "--attempts must be >= 1"),
+        (["--seed", "-1"], "--seed must be >= 0"),
+        (["--res", "0"], "--res must be a positive multiple of 16"),
+        (["--res", "40"], "--res must be a positive multiple of 16"),
+    ],
+)
+def test_bad_arguments_are_usage_errors_before_any_run(tmp_path, capsys, args, message):
+    out = tmp_path / "out"
+    with pytest.raises(SystemExit) as e:
+        main([*args, "--out", str(out)])
+    assert e.value.code == 2
+    assert message in capsys.readouterr().err
+    assert not out.exists()

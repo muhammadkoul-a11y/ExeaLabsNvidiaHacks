@@ -19,8 +19,8 @@ def statuses(row):
 
 def test_resolve_room_by_name_and_by_path():
     assert summary.resolve_room("hero_kitchen", SCANS) == ("hero_kitchen", SCANS / "hero_kitchen" / "scan.json")
-    room, path = summary.resolve_room("tests/fixtures/roomplan/amal.json", SCANS)
-    assert room == "amal" and path.is_file()
+    room, path = summary.resolve_room("tests/fixtures/roomplan/office.json", SCANS)
+    assert room == "office" and path.is_file()
     with pytest.raises(FileNotFoundError):
         summary.resolve_room("no_such_room", SCANS)
     with pytest.raises(FileNotFoundError):
@@ -108,7 +108,7 @@ def test_roomplan_rows_flag_invented_objects(tmp_path, monkeypatch):
     import arrival.sim.tasks as tasks
 
     monkeypatch.setattr(tasks, "make_tasks", lambda *a, **k: [])  # compile is the point; skip the sim
-    row = summary.run_room("tests/fixtures/roomplan/shopyseek.json", tmp_path, SCANS)
+    row = summary.run_room("tests/fixtures/roomplan/study.json", tmp_path, SCANS)
     c = row["stages"]["compile"]
     assert c["status"] == "ok" and c["objects_default_synthetic"] is True and "invented" in c["detail"]
     assert row["tape"] is None  # no measurements exist for this room

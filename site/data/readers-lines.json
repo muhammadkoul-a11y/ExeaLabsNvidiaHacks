@@ -1,0 +1,302 @@
+{
+ "film": "Arrival",
+ "length": "2:26",
+ "lines": [
+  {
+   "n": "01",
+   "chapter": "Cold open",
+   "text": "A new home robot has never seen your kitchen.",
+   "at": "0:01.4",
+   "say": "3.4",
+   "card": "big"
+  },
+  {
+   "n": "02",
+   "chapter": "Cold open",
+   "text": "It doesn't know your drawers or your fridge.",
+   "at": "0:07.0",
+   "say": "2.8",
+   "card": "big"
+  },
+  {
+   "n": "03",
+   "chapter": "How robots learn today",
+   "text": "Today, people teach robots by remote control.",
+   "at": "0:17.8",
+   "say": "3.0",
+   "card": "big"
+  },
+  {
+   "n": "04",
+   "chapter": "How robots learn today",
+   "text": "We timed it at sixty-one seconds per demo.",
+   "at": "0:21.6",
+   "say": "3.0",
+   "card": "small"
+  },
+  {
+   "n": "05",
+   "chapter": "How robots learn today",
+   "text": "Or robots train in a simulated kitchen that isn't yours.",
+   "at": "0:25.3",
+   "say": "3.6",
+   "card": "small"
+  },
+  {
+   "n": "06",
+   "chapter": "How robots learn today",
+   "text": "Internet video has no action data.",
+   "at": "0:29.5",
+   "say": "2.6",
+   "card": "small"
+  },
+  {
+   "n": "07",
+   "chapter": "How robots learn today",
+   "text": "AI video can look real and get the physics wrong.",
+   "at": "0:32.8",
+   "say": "2.8",
+   "card": "small"
+  },
+  {
+   "n": "08",
+   "chapter": "One scan",
+   "text": "We start from one iPhone scan.",
+   "at": "0:36.1",
+   "say": "2.2",
+   "card": "big"
+  },
+  {
+   "n": "09",
+   "chapter": "One scan",
+   "text": "Arrival rebuilds the room in a physics engine.",
+   "at": "0:39.4",
+   "say": "3.0",
+   "card": "small"
+  },
+  {
+   "n": "10",
+   "chapter": "One scan",
+   "text": "Every drawer and door in it opens and closes.",
+   "at": "0:43.1",
+   "say": "3.0",
+   "card": "small"
+  },
+  {
+   "n": "11",
+   "chapter": "One scan",
+   "text": "So your robot can learn your kitchen before it gets there.",
+   "at": "0:47.8",
+   "say": "3.2",
+   "card": "big"
+  },
+  {
+   "n": "12",
+   "chapter": "The product",
+   "text": "You upload the scan and get a dataset back.",
+   "at": "0:52.0",
+   "say": "2.8",
+   "card": "small"
+  },
+  {
+   "n": "13",
+   "chapter": "Nemotron on Nebius Token Factory",
+   "text": "Nemotron, live on Nebius Token Factory, plans every task.",
+   "at": "0:55.8",
+   "say": "3.4",
+   "card": "big"
+  },
+  {
+   "n": "14",
+   "chapter": "Nemotron on Nebius Token Factory",
+   "text": "Tell it, \"Let me check if we're out of milk.\"",
+   "at": "0:59.5",
+   "say": "2.2",
+   "card": "small"
+  },
+  {
+   "n": "15",
+   "chapter": "Nemotron on Nebius Token Factory",
+   "text": "It opens the fridge to check.",
+   "at": "1:02.3",
+   "say": "2.0",
+   "card": "small"
+  },
+  {
+   "n": "16",
+   "chapter": "Nemotron on Nebius Token Factory",
+   "text": "It got thirteen of fifteen right; a keyword parser got six.",
+   "at": "1:04.7",
+   "say": "3.4",
+   "card": "small"
+  },
+  {
+   "n": "17",
+   "chapter": "Tavily",
+   "text": "Tavily feeds Nemotron real facts from the web, like the force it takes to open a fridge.",
+   "at": "1:08.4",
+   "say": "4.8",
+   "card": "small"
+  },
+  {
+   "n": "18",
+   "chapter": "Practice",
+   "text": "Then the robot practices while people walk around it.",
+   "at": "1:13.6",
+   "say": "3.4",
+   "card": "big"
+  },
+  {
+   "n": "19",
+   "chapter": "Practice",
+   "text": "The simulator checks the physics of every grasp.",
+   "at": "1:17.8",
+   "say": "3.0",
+   "card": "small"
+  },
+  {
+   "n": "20",
+   "chapter": "Practice",
+   "text": "If it misses the bowl or bumps into someone,",
+   "at": "1:21.6",
+   "say": "2.8",
+   "card": "big"
+  },
+  {
+   "n": "21",
+   "chapter": "Practice",
+   "text": "that demo gets thrown out.",
+   "at": "1:24.8",
+   "say": "2.0",
+   "card": "small"
+  },
+  {
+   "n": "22",
+   "chapter": "The dataset",
+   "text": "The demos that pass become training data.",
+   "at": "1:27.7",
+   "say": "2.5",
+   "card": "small"
+  },
+  {
+   "n": "23",
+   "chapter": "The dataset",
+   "text": "They're saved in the format NVIDIA GR00T trains on.",
+   "at": "1:30.9",
+   "say": "3.2",
+   "card": "small"
+  },
+  {
+   "n": "24",
+   "chapter": "The result",
+   "text": "We fine-tuned GR00T N1.7 on one room.",
+   "at": "1:35.2",
+   "say": "2.8",
+   "card": "big"
+  },
+  {
+   "n": "25",
+   "chapter": "The result",
+   "text": "Thirty-nine of forty-eight passed, up from twenty-six.",
+   "at": "1:38.9",
+   "say": "3.2",
+   "card": "small"
+  },
+  {
+   "n": "26",
+   "chapter": "The result",
+   "text": "We also found that noisy demos",
+   "at": "1:42.7",
+   "say": "2.0",
+   "card": "small"
+  },
+  {
+   "n": "27",
+   "chapter": "The result",
+   "text": "taught it to stop short on drawers.",
+   "at": "1:45.0",
+   "say": "2.0",
+   "card": "small"
+  },
+  {
+   "n": "28",
+   "chapter": "The result",
+   "text": "This is all in simulation, with one room and small samples.",
+   "at": "1:47.8",
+   "say": "3.4",
+   "card": "small"
+  },
+  {
+   "n": "29",
+   "chapter": "Why it matters",
+   "text": "Arrival makes robot training data for your own room.",
+   "at": "1:52.0",
+   "say": "3.4",
+   "card": "big"
+  },
+  {
+   "n": "30",
+   "chapter": "Why it matters",
+   "text": "A thousand demos take one person seventeen hours.",
+   "at": "1:55.8",
+   "say": "2.9",
+   "card": "small"
+  },
+  {
+   "n": "31",
+   "chapter": "Why it matters",
+   "text": "Arrival takes under an hour.",
+   "at": "1:59.1",
+   "say": "2.1",
+   "card": "small"
+  },
+  {
+   "n": "32",
+   "chapter": "Why it matters",
+   "text": "Every home robot will need data from its own home.",
+   "at": "2:01.9",
+   "say": "2.9",
+   "card": "small"
+  },
+  {
+   "n": "33",
+   "chapter": "Why it matters",
+   "text": "The plan is to charge per room.",
+   "at": "2:05.2",
+   "say": "2.0",
+   "card": "small"
+  },
+  {
+   "n": "34",
+   "chapter": "How we built it",
+   "text": "We built eight parts from scratch, all open source.",
+   "at": "2:08.0",
+   "say": "2.6",
+   "card": "small"
+  },
+  {
+   "n": "35",
+   "chapter": "How we built it",
+   "text": "Three hundred twenty-nine hours and two hundred seventy-four pull requests.",
+   "at": "2:11.2",
+   "say": "3.9",
+   "card": "small"
+  },
+  {
+   "n": "36",
+   "chapter": "How we built it",
+   "text": "NVIDIA GR00T and Nemotron, on Nebius Token Factory, with Tavily.",
+   "at": "2:15.9",
+   "say": "4.8",
+   "card": "small"
+  },
+  {
+   "n": "37",
+   "chapter": "The end",
+   "text": "Arrival. Scan a room once.",
+   "at": "2:21.1",
+   "say": "2.4",
+   "card": "small"
+  }
+ ]
+}

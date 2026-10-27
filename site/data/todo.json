@@ -1,17 +1,17 @@
 {
- "as_of": "2026-10-25",
+ "as_of": "2026-10-26",
  "repo": "AvnehSBhatia/ExeaLabsNvidiaHacks",
  "source": "README to-do, refreshed after #251, #252 and #302 put PRs #201-#301 on main. Submission fields re-checked against https://nebiusglobalaihackathon.devpost.com/ and the official rules on 2026-10-25.",
  "counts": {
-  "done": 60,
+  "done": 64,
   "review": 0,
-  "todo": 2,
-  "blocked": 18,
+  "todo": 1,
+  "blocked": 15,
   "total": 80
  },
  "prs": {
-  "merged": 241,
-  "open": 1,
+  "merged": 277,
+  "open": 2,
   "closed_unmerged": 18
  },
  "groups": [
@@ -1002,22 +1002,28 @@
     {
      "id": "C6",
      "title": "One real Nemotron call on Token Factory, kept as evidence",
-     "status": "blocked",
+     "status": "done",
      "owner_kind": "cloud",
      "size": "S",
      "priority": "must",
-     "authors": [],
-     "note": "The cheapest way to meet the rule that the project runs on Nebius (Stage One is pass/fail). Put TOKEN_FACTORY_API_KEY, NEMOTRON_SUPER_MODEL and NEMOTRON_LIGHTNING_MODEL in .env, then run python scripts/smoke_live_apis.py and commit the report it writes to docs/results/. Then run sim --planner vlm --instructions nemotron once for the video, and fill the [after the real call] lines in docs/DEVPOST-FEEDBACK.md. The shipped Nemotron cache is empty, so a key reaches the API."
+     "authors": [
+      "AvnehSBhatia",
+      "Claude Code"
+     ],
+     "note": "Live on Oct 26: Nemotron Super plans (about 2.6 s each) and Lightning writes wordings through Token Factory. On 15 indirect requests the Nemotron planner picks the right task 13 times against 6 for the keyword parser, and on 54 Lightning-written wordings 52 against 47 (docs/results/planner-benchmark-2026-10-26.json). Evidence: docs/results/live-apis-2026-10-26.json."
     },
     {
      "id": "C7",
      "title": "One real Tavily call, for the Best Use of Tavily bonus",
-     "status": "blocked",
+     "status": "done",
      "owner_kind": "cloud",
      "size": "S",
      "priority": "should",
-     "authors": [],
-     "note": "The bonus needs a functional runtime call to the Tavily API. Set TAVILY_API_KEY and run python scripts/smoke_live_apis.py (or arrival research --room hero_kitchen); the report should say source=tavily_api with real source URLs. #299 emptied the shipped cache so the key is used."
+     "authors": [
+      "AvnehSBhatia",
+      "Claude Code"
+     ],
+     "note": "Live on Oct 26: queries rewritten against the live API so they return figures (e.g. the fridge's federal 66.7 N opening-force limit, citing ecfr.gov), at the advanced depth. The safety guidelines beside them are still our built-in table, labelled built_in_table."
     },
     {
      "id": "C1",
@@ -1027,7 +1033,7 @@
      "size": "L",
      "priority": "must",
      "issue": 66,
-     "note": "Fan-out with done-markers, retry and resume is built. arrival fanout --backend nebius runs shards as Serverless AI Jobs with an Object Storage bucket, tested only against in-process fakes of both APIs. It has never run against Nebius. The hackathon rules count a project as running on Nebius only if it calls the Token Factory inference API or runs on Nebius AI Cloud (Serverless Jobs, Serverless Endpoints, or DevPods). Neither has been done. C6 alone satisfies the rule; a real Serverless Jobs run (even one small shard) is what the Physical AI track description asks for and what the judges from Nebius will look for.",
+     "note": "Fan-out with done-markers, retry and resume is built. arrival fanout --backend nebius runs shards as Serverless AI Jobs with an Object Storage bucket, tested only against in-process fakes of both APIs. It has never run against Nebius. The hackathon rules count a project as running on Nebius only if it calls the Token Factory inference API or runs on Nebius AI Cloud (Serverless Jobs, Serverless Endpoints, or DevPods). Neither has been done. Not pursued for this submission: C6 meets the rule.",
      "authors": [
       "AvnehSBhatia",
       "Claude Code"
@@ -1065,13 +1071,16 @@
     {
      "id": "C4",
      "title": "Detect small objects from posed frames with a VLM",
-     "status": "blocked",
+     "status": "done",
      "owner_kind": "cloud",
      "size": "M",
      "priority": "should",
      "issue": 60,
-     "note": "Offline slice built: detection client, back-projection into the room, merge across frames and the worker's labelled fallback, tested on rendered frames with hand-written replies. The real model call is blocked on Token Factory credentials.",
-     "authors": []
+     "note": "Live on Oct 26: Nemotron 3.5 Super VL on Token Factory read the six rendered fixture frames, boxed the mug in all three mug frames and nothing in the empty ones; the mug was placed 1.2 cm from its true centre (docs/results/live-detect-2026-10-26.json). Rendered frames, not a real scan: real RGB-D frames wait on P1.",
+     "authors": [
+      "AvnehSBhatia",
+      "Claude Code"
+     ]
     },
     {
      "id": "C5",
@@ -1125,12 +1134,17 @@
     {
      "id": "P5",
      "title": "Replace the two unlicensed public RoomPlan fixtures with our own captures",
-     "status": "todo",
+     "status": "done",
      "owner_kind": "people",
      "size": "M",
      "priority": "must",
-     "authors": [],
-     "note": "tests/fixtures/roomplan/amal.json and shopyseek.json come from GitHub repositories with no licence, so we have no grant to redistribute them, and the rules require permission for third-party data. Replace them with an office (table and chairs) and a desk-with-chair capture of our own, or delete them and the tests that need them, before submitting. Uses: tests/fixtures/roomplan/README.md."
+     "authors": [
+      "amanx98"
+     ],
+     "note": "Licence risk resolved: unlicensed fixtures amal.json and shopyseek.json replaced with Apache 2.0 authored fixtures office.json and study.json (#310). Consented real phone captures of an office (table and chairs) and a bedroom (desk blocked by chair) are still wanted to validate phone noise on doors and windows. Uses: tests/fixtures/roomplan/README.md.",
+     "pr": [
+      310
+     ]
     },
     {
      "id": "P3",

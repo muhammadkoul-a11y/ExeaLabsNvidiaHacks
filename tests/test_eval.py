@@ -127,7 +127,7 @@ def test_training_tasks_exclude_the_holdout(twin):
     assert offsets(train) == {(0.0, 0.0), (0.08, 0.0), (-0.08, 0.0)}
     held = make_tasks(twin, ["counter_to_sink", "open_drawer"], 40, seed=0, holdout=True, log=lambda *_: None)
     assert {t["wording_index"] for t in held if t["family"] == "counter_to_sink"} == {3}
-    assert {t["wording_index"] for t in held if t["family"] == "open_drawer"} == {0, 1, 2}
+    assert {t["wording_index"] for t in held if t["family"] == "open_drawer"} == {3}
     assert offsets(held) == {(0.0, 0.04)}
 
 
@@ -236,3 +236,14 @@ def test_eval_isolates_a_failing_episode_and_offsets_seeds(twin, tmp_path, monke
     assert f["episodes"] == 2 and f["errors"] == ["RuntimeError: ik exploded"] and f["successes"] <= 1
     assert rep["totals"]["errors"] == 1 and rep["path"].is_file()
     assert all(t["seed"] >= harness.EVAL_SEED_BASE * 1000 for t in seen)
+
+
+def test_every_family_has_a_held_out_wording(twin):
+    from arrival.sim.tasks import HOLDOUT_WORDING, SIM_FAMILIES, SIM_WORDINGS, make_tasks
+
+    assert [f for f in SIM_FAMILIES if len(SIM_WORDINGS[f]) <= HOLDOUT_WORDING] == []
+    held = make_tasks(twin, list(SIM_FAMILIES), 45, seed=0, holdout=True, log=lambda *_: None)
+    train = make_tasks(twin, list(SIM_FAMILIES), 45, seed=0, log=lambda *_: None)
+    assert len({t["family"] for t in held}) >= 10
+    assert {t["wording_index"] for t in held} == {HOLDOUT_WORDING}
+    assert HOLDOUT_WORDING not in {t["wording_index"] for t in train}

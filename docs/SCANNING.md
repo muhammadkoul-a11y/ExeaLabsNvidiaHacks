@@ -1,6 +1,6 @@
 # Scanning rooms for Arrival
 
-This is the field protocol for CAP-3 scans. It produces a RoomPlan JSON export, two reference photos, and three independent tape measurements so the twin can be checked against the room. The capture app in CAP-1 is still planned; use a RoomPlan exporter that writes the `CapturedRoom` JSON and USDZ until it exists. The authored `hero_kitchen` sample is not a measured room.
+This is the field protocol for CAP-3 scans. It produces a RoomPlan JSON export, two reference photos, and three independent tape measurements so the twin can be checked against the room. Scan with the capture app in `ios/` (CAP-1, setup in `ios/README.md`); any RoomPlan exporter that writes the `CapturedRoom` JSON also works. The authored `hero_kitchen` sample is not a measured room.
 
 ## Before entering the room
 
@@ -17,9 +17,17 @@ This is the field protocol for CAP-3 scans. It produces a RoomPlan JSON export, 
 4. Check the preview before leaving. Verify that the wall loop closes, the floor is present, major fixtures are represented, and there are no obvious duplicate or floating objects. If a wall or key fixture is missing, take another full pass and keep only the better export.
 5. Take two reference photos from different corners showing the overall layout and major fixtures. Avoid faces, screens, documents, photographs, addresses, and other personal information. Retake or crop a photo if any such detail is visible.
 
+With **Record RGB-D frames** on (the default), the capture app also saves posed RGB-D frames in `frames/` next to `roomplan.json` (`ios/README.md`). `python -m arrival realism <room_id>` compares the twin against them when they sit at `scans/<room_id>/frames/`; a scan without them cannot get a realism score. They are photos of the home, so the consent and privacy rules above apply to every frame.
+
 ## Export and file layout
 
-Keep the raw export and the measurements together:
+Build the folder with `scripts/intake_scan.py`. It copies the export, re-encodes the photos without EXIF (GPS, device serial, timestamps) at 1600 px or less, writes `notes.md` and `measurements.json`, runs the geometry checks, renders the top-down PNG and prints GO or NO-GO. It refuses a folder that already exists.
+
+```bash
+python scripts/intake_scan.py <room_id> --roomplan roomplan.json --photos reference_1.jpg reference_2.jpg \n    --location-type kitchen --phone "iPhone 15 Pro" --ios 18.1 --lighting daylight --clutter low \n    --measure counter_length=3.20,counter_height=0.92,sink_width=0.55
+```
+
+The result:
 
 ```text
 scans/<room_id>/
@@ -29,33 +37,39 @@ scans/<room_id>/
   measurements.json   # counter_length_m, counter_height_m, sink_width_m; tape values in metres
   reference_1.jpg
   reference_2.jpg
+  frames/             # optional RGB-D frames, copied by hand; keep local, do not commit
 ```
 
 The JSON must be the RoomPlan `CapturedRoom` data, including transforms and dimensions in meters. Do not manually edit fixture positions to make the accuracy test pass. If the exporter produces another schema, keep the original privately and document the conversion before adding `roomplan.json`. The two photos are reference views, not the four-photo fallback input.
 
-Use this `notes.md` template:
+Intake writes `notes.md` from its flags. If you write or edit it by hand, keep these field names: `validate_scan_dir` (run by intake) reports a missing or blank one as NO-GO. Tape values are plain numbers of metres and must equal `measurements.json`. The lines after `Sink width` and the table are for the reviewer and are not checked.
 
 ```markdown
-# <room_id>
+# kitchen_galley_01
 
-- Room type / layout: kitchen / galley
-- Device / iOS: <model> / <version>
+- Location type: kitchen
+- Phone model: iPhone 15 Pro
+- iOS version: 18.1
+- Lighting: daylight
+- Clutter: low
+- Counter length (m): 3.20
+- Counter height (m): 0.92
+- Sink width (m): 0.55
 - Capture date: YYYY-MM-DD
-- Lighting / clutter: <description>
 - Reflective or occluded surfaces: <description>
 - Scan issues or objects moved: <description>
 - Permission for public geometry and photos: yes; obtained from <role, not name>
 
-| Feature | Tape measurement (m) | Endpoints or surfaces measured | RoomPlan fixture ID |
-|---|---:|---|---|
-| Counter length | | | |
-| Counter height | | finished floor to worktop | |
-| Sink width | | outside rim to outside rim | |
+| Feature | Endpoints or surfaces measured | RoomPlan fixture ID |
+|---|---|---|
+| Counter length | | |
+| Counter height | finished floor to worktop | |
+| Sink width | outside rim to outside rim | |
 ```
 
 Use fixture IDs from the JSON in the last column. If a feature is not recognized by RoomPlan, write `missing`; do not substitute a guessed dimension. Keep the signed consent record outside this public repo.
 
-The intake command writes `measurements.json` from `--measure` using the keys
+`scripts/intake_scan.py` writes `measurements.json` from `--measure` using the keys
 `counter_length_m`, `counter_height_m` and `sink_width_m` expected by
 `scripts/scan_accuracy.py`. Intake reports NO-GO if a tape value is absent or
 its value in `notes.md` differs from the JSON.
@@ -63,8 +77,8 @@ its value in `notes.md` differs from the JSON.
 ## Review before committing
 
 1. Open the JSON and confirm it contains `walls` and `objects`. Make sure the device exported the whole room rather than a partial pass.
-2. Remove location metadata from the photos. Inspect the visible pixels and the notes for personal information. Do not commit raw RGB-D frames until their privacy and storage format is defined under CAP-2.
-3. Normalize and compile the scan locally, then run the regression suite:
+2. Intake re-encodes the photos without EXIF; remove location metadata yourself from any photo you add by hand. Inspect the visible pixels and the notes for personal information. Do not commit the raw RGB-D frames in `frames/` until their privacy is settled under CAP-2.
+3. Intake has already normalized, compiled and rendered the scan. For a folder built by hand, do that yourself; either way, run the regression suite:
 
    ```bash
    python scripts/render_rooms.py scans/<room_id>

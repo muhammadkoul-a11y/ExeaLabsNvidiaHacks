@@ -6,7 +6,7 @@ Reads `out/reports/*.json`, `out/eval/*.json` and `out/jobs/*/status.json` (fini
 
 ## Rows
 
-One row per source and room, and per family where the file has families. Columns: attempts, successes, drop rate, seconds, demos per hour, seconds per successful demo, attempts per successful demo. Local CPU wall seconds is the same seconds figure, kept as its own key with no price on it. A value the file does not hold is null and prints `-`: sim reports have no per-family seconds, so per-family throughput appears for eval files only. The three sources describe overlapping runs (a job wraps a sim report); never add across them.
+One row per source and room, and per family where the file has families. Columns: attempts, successes, drop rate, seconds, demos per hour, seconds per successful demo, attempts per successful demo. Local CPU wall seconds is the same seconds figure, kept as its own key with no price on it. A value the file does not hold is null and prints `-`: sim reports written before per-family `seconds` existed, and merged shard reports that include one, print `-` for per-family throughput. The three sources describe overlapping runs (a job wraps a sim report); never add across them.
 
 ## Dollars
 

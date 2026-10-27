@@ -526,8 +526,9 @@ def collect(twin: dict, families: list[str], episodes: int, out_dir: str | Path 
                 skips.append({"stage": r["stage"], "task_id": r["task_id"], "family": r["family"], "reason": r["reason"]})
                 continue
             fam = per.setdefault(r["family"], {"attempts": 0, "successes": 0, "human_contacts": 0,
-                                               "fridge_visits": 0, "door_contacts": 0})
+                                               "fridge_visits": 0, "door_contacts": 0, "seconds": 0.0})
             fam["attempts"] += 1
+            fam["seconds"] += r["seconds"]
             fam["successes"] += r["outcome"] == "ok"
             fam["human_contacts"] += r["human_contact"]
             fam["fridge_visits"] += r["fridge_visit"]
@@ -587,7 +588,7 @@ def collect(twin: dict, families: list[str], episodes: int, out_dir: str | Path 
                             "reason": skips[-1]["reason"], "seconds": round(time.perf_counter() - t_task, 3)})
             continue
         fam = per.setdefault(task["family"], {"attempts": 0, "successes": 0, "human_contacts": 0,
-                                              "fridge_visits": 0, "door_contacts": 0})
+                                              "fridge_visits": 0, "door_contacts": 0, "seconds": 0.0})
         fam["attempts"] += 1
         contact = ep["safety"]["human_contact"]
         fam["human_contacts"] += contact
@@ -600,9 +601,11 @@ def collect(twin: dict, families: list[str], episodes: int, out_dir: str | Path 
         if kept:
             fam["successes"] += 1
             writer.add_episode(ep, task)
+        task_seconds = round(time.perf_counter() - t_task, 3)
+        fam["seconds"] += task_seconds
         journal.append({"task_id": task["task_id"], "outcome": "ok" if kept else ("contact" if contact else "miss"),
                         "family": task["family"], "human_contact": contact, "fridge_visit": int(ep["fridge_visit"]),
-                        "door_contact": ep["safety"]["door_contact"], "seconds": round(time.perf_counter() - t_task, 3),
+                        "door_contact": ep["safety"]["door_contact"], "seconds": task_seconds,
                         **({"episode": writer.episodes[-1], "stats": writer.stats[-1]} if kept else {})})  # after the files
         if save_preview and i == 0:
             _write_preview(out_dir / "previews", room, preview, ep)
@@ -627,7 +630,8 @@ def collect(twin: dict, families: list[str], episodes: int, out_dir: str | Path 
               "human_contacts": sum(f["human_contacts"] for f in per.values()),
               "fridge_visits": sum(f["fridge_visits"] for f in per.values()),
               "door_contacts": sum(f["door_contacts"] for f in per.values()),
-              "families": {k: {**v, "success_rate": round(v["successes"] / v["attempts"], 3)} for k, v in per.items()},
+              "families": {k: {**v, "seconds": round(v["seconds"], 2), "success_rate": round(v["successes"] / v["attempts"], 3)}
+                           for k, v in per.items()},
               "people": people, "resolution": res, "physics_checked_success": True, "grasp": "friction",
               "base": base, "arm": arm, "cameras": list(cameras), **({"shard": shard_info} if shard else {}),
               **({"resumed_tasks": len(done)} if done else {})}

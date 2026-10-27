@@ -435,6 +435,31 @@ def test_each_episode_records_what_actually_planned_it(twin, tmp_path, monkeypat
     assert rows and not any("arrival_planned_by" in r for r in rows)
 
 
+def test_each_episode_records_what_wrote_its_instruction(twin, tmp_path, monkeypatch):
+    # --instructions nemotron with no key or a failed call falls back to templates; the dataset must say which
+    import arrival.models.token_factory as tf
+    import arrival.tasks.instructions as ins
+
+    monkeypatch.setattr(ins, "DEFAULT_CACHE", tmp_path / "instr.json")
+
+    def down(*a, **k):
+        raise tf.TokenFactoryNotConfigured("no key")
+
+    def rows(out):
+        return [json.loads(x) for x in next(out.glob("datasets/*/meta/episodes.jsonl")).read_text().splitlines()]
+
+    monkeypatch.setattr(tf, "complete", down)
+    collect(twin, ["open_drawer"], 1, tmp_path / "down", people=0, res=32, use_generated_instructions=True,
+            log=lambda *_: None)
+    assert [r["arrival_instruction_source"] for r in rows(tmp_path / "down")] == ["template_fallback"]
+    monkeypatch.setattr(tf, "complete", lambda *a, **k: '["Pull the drawer open.", "Open that drawer."]')
+    collect(twin, ["open_drawer"], 1, tmp_path / "up", people=0, res=32, use_generated_instructions=True,
+            log=lambda *_: None)
+    assert [r["arrival_instruction_source"] for r in rows(tmp_path / "up")] == ["token_factory"]
+    collect(twin, ["open_drawer"], 1, tmp_path / "template", people=0, res=32, log=lambda *_: None)
+    assert not any("arrival_instruction_source" in r for r in rows(tmp_path / "template"))
+
+
 def test_collect_skips_a_task_whose_policy_raises_and_closes_its_env(twin, tmp_path, monkeypatch):
     from arrival.sim.policy import ScriptedExpert
 

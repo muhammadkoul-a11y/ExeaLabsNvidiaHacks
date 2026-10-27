@@ -125,7 +125,7 @@ def load(path: str | Path) -> dict:
     """Read and validate scan.json. The result carries `input_sha256`, the sha256 of the file's bytes, for provenance."""
     from arrival.export.provenance import sha256_file
 
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         bundle = validate(json.load(f))
     bundle["input_sha256"] = sha256_file(path)
     return bundle

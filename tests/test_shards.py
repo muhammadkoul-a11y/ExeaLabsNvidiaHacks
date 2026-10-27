@@ -336,6 +336,41 @@ def test_resumed_shard_equals_an_uninterrupted_one(runs, twin, tmp_path, monkeyp
     assert _frames(res["dataset"]) == _frames(ref["dataset"])
     for k in ("total_episodes", "total_frames", "arrival_attempts", "arrival_successes", "arrival_skipped"):
         assert res["info"][k] == ref["info"][k], k
-    assert res["report_data"]["families"] == ref["report_data"]["families"]
+    untimed = [{f: {k: v for k, v in c.items() if k != "seconds"} for f, c in r["report_data"]["families"].items()}
+               for r in (res, ref)]
+    assert untimed[0] == untimed[1]
+    done_secs = json.loads(journal.read_text().splitlines()[1])["seconds"]
+    assert sum(c["seconds"] for c in res["report_data"]["families"].values()) > done_secs  # the task run before the kill counts
     # an interrupted second task left no episode behind that the resumed run kept twice
     assert len(list(res["dataset"].glob("data/chunk-*/*.parquet"))) == res["info"]["total_episodes"]
+
+
+def test_report_times_each_family_so_cost_can_compare_with_teleop(runs):
+    from arrival.eval import cost
+    from conftest import REPO
+
+    rep = runs["single"]["report_data"]
+    fams = rep["families"]
+    assert set(fams) == {"counter_to_sink", "open_drawer"}
+    assert all(f["seconds"] > 0 for f in fams.values())
+    assert sum(f["seconds"] for f in fams.values()) <= rep["seconds"] + 0.01
+    merged = json.loads(runs["merged"]["report"].read_text())
+    for fam, f in merged["families"].items():
+        parts = [p["report_data"]["families"][fam]["seconds"] for p in runs["parts"] if fam in p["report_data"]["families"]]
+        assert f["seconds"] == pytest.approx(sum(parts), abs=0.02)
+    baseline = REPO / "docs" / "results" / "p3-teleop-2026-10-21" / "teleop_baseline.json"
+    c = cost.build(runs["root"] / "single", baseline_path=baseline)["comparison"]
+    assert c["measured"] and c["task"] == "counter_to_sink" and c["generated"]["scope"] == "task"
+    assert c["generated"]["seconds_per_success"] == pytest.approx(
+        fams["counter_to_sink"]["seconds"] / fams["counter_to_sink"]["successes"], abs=0.001)
+    assert c["seconds_ratio_teleop_over_generated"] is not None
+
+
+def test_merge_of_a_shard_report_without_family_seconds_leaves_them_unknown(tmp_path):
+    fam = {"attempts": 1, "successes": 1, "human_contacts": 0, "fridge_visits": 0, "door_contacts": 0}
+    rep = {"room_id": "room", "seconds": 2.0, "human_contacts": 0}
+    old, new = {**rep, "families": {"open_drawer": fam}}, {**rep, "families": {"open_drawer": {**fam, "seconds": 2.0}}}
+    info = {"total_episodes": 2, "arrival_attempts": 2}
+    for pair, want in (([new, new], 4.0), ([old, new], None), ([new, old], None)):
+        path = shards._merged_report([{"report": r} for r in pair], info, {}, tmp_path / "r.json", 2)
+        assert json.loads(path.read_text())["families"]["open_drawer"]["seconds"] == want

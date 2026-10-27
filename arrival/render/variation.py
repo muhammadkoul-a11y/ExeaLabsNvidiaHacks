@@ -415,9 +415,9 @@ def vary_dataset(src: str | Path, dst: str | Path, backend: str = "local_stub", 
     if type(fps) is not int or fps < 1:
         raise ValueError("fps must be a positive integer")
 
+    cli = client if client is not None else (CosmosClient() if backend == "cosmos" else LocalStub(seed))
     stage_start = time.perf_counter()
     shutil.copytree(src, dst)
-    cli = client if client is not None else (CosmosClient() if backend == "cosmos" else LocalStub(seed))
     counts = {"selected": 0, "ok": 0, "rejected": 0, "failed": 0, "skipped": 0}
     consecutive = 0
     cosmos_ok = 0
@@ -523,14 +523,21 @@ def vary_dataset(src: str | Path, dst: str | Path, backend: str = "local_stub", 
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description="appearance variation over a COPY of a sim dataset")
+    ap = argparse.ArgumentParser(prog="python -m arrival.render.variation",
+                                 description="appearance variation over a COPY of a sim dataset")
     ap.add_argument("src")
     ap.add_argument("dst")
     ap.add_argument("--backend", choices=["cosmos", "local_stub"], default="local_stub")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--fraction", type=float, default=FRACTION)
     a = ap.parse_args(argv)
-    print(json.dumps(vary_dataset(a.src, a.dst, a.backend, a.seed, a.fraction), indent=2))
+    if not (Path(a.src) / "meta" / "info.json").is_file():
+        ap.error(f"no dataset at {a.src} (meta/info.json not found)")
+    try:
+        summary = vary_dataset(a.src, a.dst, a.backend, a.seed, a.fraction)
+    except (ValueError, FileExistsError) as e:
+        ap.error(str(e))
+    print(json.dumps(summary, indent=2))
     return 0
 
 

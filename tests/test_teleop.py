@@ -118,6 +118,24 @@ def test_failed_and_abandoned_attempts_count_time_but_write_no_baseline(twin, tm
     assert [r["ended_by"] for r in rows] == ["judge", "give_up"] and not any(r["success"] for r in rows)
 
 
+@pytest.mark.parametrize("extra, why", [
+    (["--operator-usd-per-hour", "nan"], "finite"),
+    (["--operator-usd-per-hour", "40", "--setup-usd", "inf"], "finite"),
+    (["--operator-usd-per-hour", "40", "--people", "-1"], "--people"),
+    (["--operator-usd-per-hour", "40", "--seed", "-1"], "--seed"),
+    (["--operator-usd-per-hour", "40", "--res", "100"], "--res"),
+])
+def test_bad_arguments_stop_before_the_session(extra, why, tmp_path, capsys, monkeypatch):
+    def session_started(*_a, **_k):
+        raise AssertionError("the teleop session started")
+    monkeypatch.setattr(teleop, "TeleopWindow", session_started)
+    with pytest.raises(SystemExit) as e:
+        teleop.main([*extra, "--scans", str(SCANS), "--out", str(tmp_path)])
+    assert e.value.code == 2
+    assert why in capsys.readouterr().err
+    assert not any(tmp_path.iterdir())
+
+
 def test_window_turns_typed_keys_into_frames(twin):
     """The teleop window, not the MuJoCo viewer, receives the keys (the viewer would eat w/s/r as render toggles)."""
     try:
@@ -143,3 +161,10 @@ def test_window_turns_typed_keys_into_frames(twin):
             win.sync()
     finally:
         win.shutdown()
+
+
+def test_unknown_room_is_a_usage_error_not_a_traceback(tmp_path, capsys):
+    with pytest.raises(SystemExit) as e:
+        teleop.main(["--room", "nope_room", "--scans", str(tmp_path), "--operator-usd-per-hour", "10"])
+    assert e.value.code == 2
+    assert "no scan for room 'nope_room'" in capsys.readouterr().err

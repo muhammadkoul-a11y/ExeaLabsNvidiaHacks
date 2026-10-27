@@ -29,10 +29,10 @@ python -m arrival merge-shards data/shards --out merged && python -m arrival val
 ## Stats, fine-tune, serve
 
 ```bash
-python gr00t/data/stats.py --dataset-path merged/datasets/hero_kitchen_sim --embodiment-tag NEW_EMBODIMENT \\
+python gr00t/data/stats.py --dataset-path merged/datasets/hero_kitchen_sim --embodiment-tag NEW_EMBODIMENT \
     --modality-config-path configs/gr00t/arrival_panda_config.py        # stats.json, relative_stats.json: all finite
-python gr00t/experiment/launch_finetune.py --base-model-path <GR00T-N1.7-3B dir> --dataset-path merged/datasets/hero_kitchen_sim \\
-    --embodiment-tag NEW_EMBODIMENT --modality-config-path configs/gr00t/arrival_panda_config.py --num-gpus 1 \\
+python gr00t/experiment/launch_finetune.py --base-model-path <GR00T-N1.7-3B dir> --dataset-path merged/datasets/hero_kitchen_sim \
+    --embodiment-tag NEW_EMBODIMENT --modality-config-path configs/gr00t/arrival_panda_config.py --num-gpus 1 \
     --output-dir ckpt --max-steps 100 --save-steps 100 --global-batch-size 32 --dataloader-num-workers 4
 ```
 

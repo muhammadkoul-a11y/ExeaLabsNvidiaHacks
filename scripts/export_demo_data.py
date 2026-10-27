@@ -68,7 +68,7 @@ def rnd(v, n=4):
 def dump(path: Path, obj, indent=None) -> int:
     path.parent.mkdir(parents=True, exist_ok=True)
     text = json.dumps(obj, indent=indent, separators=(",", ":") if indent is None else None, allow_nan=False)
-    path.write_text(text)
+    path.write_text(text, newline="\n")  # same bytes on every OS, so the sizes in stats.json match what git serves
     return len(text)
 
 
@@ -500,6 +500,10 @@ def main(argv=None) -> int:
     ap.add_argument("--families", default=",".join(FAMILIES))
     ap.add_argument("--skip-dataset", action="store_true")
     a = ap.parse_args(argv)
+    try:  # before the output folder is cleared: a mistyped --room must not wipe site/data
+        bundle = scan_bundle.load_room(a.room, a.scans)
+    except FileNotFoundError:
+        ap.error(f"no scan for room {a.room!r} under {a.scans}")
     out, scratch = Path(a.out), Path(a.scratch)
     kept = {n: (out / n).read_bytes() for n in KEEP if (out / n).is_file()}
     if out.exists():
@@ -512,10 +516,10 @@ def main(argv=None) -> int:
         shutil.rmtree(scratch)
     log = lambda *x: print(*x, flush=True)  # noqa: E731
 
-    twin = compile_twin(scan_bundle.load_room(a.room, a.scans))
+    twin = compile_twin(bundle)
     log(f"twin {twin['room_id']}: {len(twin['fixtures'])} fixtures, {len(twin['objects'])} objects")
-    # a second room: only scans/hero_kitchen exists; the RoomPlan test fixtures hold no kitchen fixtures (and are
-    # unlicensed), so there is nothing to compile to a sim-able twin
+    # a second room: only scans/hero_kitchen exists; the RoomPlan test fixtures hold no kitchen fixtures,
+    # so there is nothing to compile to a sim-able twin
     others = [p.name for p in Path(a.scans).iterdir() if p.is_dir() and p.name != a.room and (p / "scan.json").exists()]
     log(f"other rooms under {a.scans}: {others or 'none'}")
 
@@ -620,14 +624,22 @@ def main(argv=None) -> int:
             stats["cost"] = None
             stats["cost_error"] = f"{type(e).__name__}: {e}"
             log(f"cost report did not run: {stats['cost_error']}")
-    (out / "README.md").write_text(README)
-    stats["files"] = {}
-    dump(out / "stats.json", rnd(stats, 4), indent=1)
-    sizes = {str(p.relative_to(out)): p.stat().st_size for p in sorted(out.rglob("*")) if p.is_file()}
-    stats["files"] = sizes
-    dump(out / "stats.json", rnd(stats, 4), indent=1)
+    (out / "README.md").write_text(README, newline="\n")
+    sizes = write_stats(out, stats)
     log(f"total {sum(sizes.values()) / 1e6:.2f} MB in {len(sizes)} files")
     return verify(out)
+
+
+def write_stats(out: Path, stats: dict) -> dict:
+    """Write stats.json with `files` listing every file under `out`, stats.json included. Its own size depends on the
+    listing, so it is rewritten until the listing stops changing (two or three passes)."""
+    stats["files"] = {}
+    while True:
+        dump(out / "stats.json", rnd(stats, 4), indent=1)
+        sizes = {p.relative_to(out).as_posix(): p.stat().st_size for p in sorted(out.rglob("*")) if p.is_file()}
+        if sizes == stats["files"]:
+            return sizes
+        stats["files"] = sizes
 
 
 def verify(out: Path) -> int:

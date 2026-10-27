@@ -63,3 +63,16 @@ def test_cli_exit_codes(tmp_path, capsys):
     assert cli.main(["eval-compare", str(ra), str(rc)]) == cli.EXIT_USAGE
     assert "different manifests" in capsys.readouterr().err
     assert cli.main(["eval-compare", str(ra), str(tmp_path / "missing")]) == cli.EXIT_USAGE
+
+
+def test_dataset_episodes_jsonl_is_refused_not_a_traceback(tmp_path, capsys):
+    """A LeRobot dataset's meta/episodes.jsonl has the same name but no trial_index or manifest_id."""
+    meta = tmp_path / "datasets" / "hero_kitchen_sim" / "meta"
+    meta.mkdir(parents=True)
+    (meta / "episodes.jsonl").write_text(
+        json.dumps({"episode_index": 0, "tasks": ["Put the plate in the sink."], "length": 80,
+                    "arrival_family": "counter_to_sink"}) + "\n", encoding="utf-8")
+    with pytest.raises(CompareError, match="not an eval run"):
+        compare(meta, meta)
+    assert cli.main(["eval-compare", str(meta), str(meta)]) == cli.EXIT_USAGE
+    assert "trial_index" in capsys.readouterr().err

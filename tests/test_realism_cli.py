@@ -237,6 +237,26 @@ def test_explicit_twin_json_is_used(twin, scan_dir, tmp_path):
     assert rep["twin_source"] == str(p) and rep["realism"]["depth_l1_m"] < 1e-3
 
 
+@pytest.mark.parametrize("body", ['{"room_id": "hero_kitchen"', "[]", '"twin"', "{}", '{"walls": [], "fixtures": []}'])
+def test_bad_twin_json_is_a_readable_error(scan_dir, tmp_path, capsys, body):
+    p = tmp_path / "twin.json"
+    p.write_text(body)
+    code, rep = _run(scan_dir, tmp_path, "--twin", str(p))
+    assert code == 1 and rep is None and "--twin" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("name,body", [("rgb/held_0.png", b"not a png"), ("depth/held_0.npy", b"junk"),
+                                       ("conf/held_0.png", b"junk"), ("depth/held_0.npy", None)])
+def test_unreadable_frame_file_is_a_readable_error(twin, tmp_path, capsys, name, body):
+    scan = _write_scan(tmp_path / "s" / "hero_kitchen", twin)
+    if body is None:  # metric depth saved as float64
+        np.save(scan / name, np.ones((H, W)))
+    else:
+        (scan / name).write_bytes(body)
+    code, rep = _run(scan, tmp_path)
+    assert code == 1 and rep is None and "frame held_0" in capsys.readouterr().err
+
+
 def test_evaluate_frames_still_refuses_a_train_id(twin):
     """The library-level guard the command relies on."""
     with pytest.raises(ValueError, match="train_0"):

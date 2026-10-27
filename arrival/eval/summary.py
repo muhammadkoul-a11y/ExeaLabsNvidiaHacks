@@ -16,7 +16,7 @@ import time
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
-DEFAULT_ROOMS = ("hero_kitchen", "tests/fixtures/roomplan/amal.json", "tests/fixtures/roomplan/shopyseek.json")
+DEFAULT_ROOMS = ("hero_kitchen", "tests/fixtures/roomplan/office.json", "tests/fixtures/roomplan/study.json")
 STAGES = ("normalize", "compile", "tasks", "sim", "validate", "episodes")
 REALISM_NOTE = "not measured: needs held-out RGB-D frames of the room (none exist for any room here)"
 

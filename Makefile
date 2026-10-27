@@ -5,7 +5,7 @@ OUT ?= out
 .PHONY: install test sim validate demo serve lint docs-check package-smoke clean site check-site train eval-policy serve-policy
 
 install:
-	$(PY) -m pip install -e ".[dev,sim]"
+	$(PY) -m pip install -e ".[dev,sim,lint]"
 
 test:
 	$(PY) -m pytest -q -p no:cacheprovider

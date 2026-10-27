@@ -142,9 +142,13 @@ def _load(root: Path) -> tuple[dict, list[dict]]:
     if not (root.is_dir() and (meta / "info.json").is_file() and (meta / "episodes.jsonl").is_file()):
         raise QualityError(f"{root} is not a LeRobot dataset folder (needs meta/info.json and meta/episodes.jsonl)")
     try:
-        return json.loads((meta / "info.json").read_text()), _jsonl(meta / "episodes.jsonl")
+        info, episodes = json.loads((meta / "info.json").read_text()), _jsonl(meta / "episodes.jsonl")
     except ValueError as e:
         raise QualityError(f"{root}: meta/info.json or meta/episodes.jsonl is not valid JSON ({e})") from e
+    if not isinstance(info, dict) or not all(isinstance(e, dict) and "episode_index" in e for e in episodes):
+        raise QualityError(f"{root}: meta/info.json must be an object and each meta/episodes.jsonl line an object "
+                           "with episode_index")
+    return info, episodes
 
 
 def check_episodes(root: str | Path, frames: bool = False) -> dict:
@@ -267,6 +271,8 @@ def drop_flagged(root: str | Path, out: str | Path, report: dict | None = None, 
         info["total_videos"] = n * len(video_keys)
     if "arrival_successes" in info:
         info["arrival_successes"] = n  # successes the dataset still holds; arrival_attempts is kept as collected
+    if "arrival_families" in info:
+        info["arrival_families"] = sorted({e["arrival_family"] for e in kept if e.get("arrival_family")})
     (meta / "info.json").write_text(json.dumps(info, indent=2))
     cleaned = {"output": str(out), "kept": n, "dropped": sorted(bad), "index_map": {str(k): v for k, v in mapping.items()},
                "dropped_reasons": {str(r["episode_index"]): r["flags"] for r in report["results"] if not r["ok"]}}

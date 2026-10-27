@@ -1,0 +1,1415 @@
+{
+  "run_at": "2026-10-26T19:29:24+00:00",
+  "planner_model": "nvidia/nemotron-3-super-120b-a12b",
+  "wording_model": "nvidia/Nemotron-3_5-Lightning",
+  "objects": [
+    "mug_1",
+    "bowl_1",
+    "sponge_1"
+  ],
+  "fixtures": [
+    "counter_a",
+    "sink_1",
+    "counter_b",
+    "fridge_1",
+    "stove_1"
+  ],
+  "summary": {
+    "generated": {
+      "n": 54,
+      "nemotron_right": 52,
+      "rule_right": 47,
+      "nemotron_live_calls": 54
+    },
+    "indirect": {
+      "n": 15,
+      "nemotron_right": 13,
+      "rule_right": 6,
+      "nemotron_live_calls": 15
+    }
+  },
+  "median_seconds": 2.608,
+  "note": "The indirect set is written by us, not sampled from users. A plan the planner could not parse falls back to the rule parser and is counted under nemotron with source rule_based.",
+  "rows": [
+    {
+      "set": "generated",
+      "instruction": "Pick up the mug and carry it to the sink.",
+      "family": "counter_to_sink",
+      "object": "mug_1",
+      "nemotron": {
+        "family": "counter_to_sink",
+        "object": "mug_1",
+        "target": "sink_1"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.746,
+      "rule": {
+        "family": "counter_to_sink",
+        "object": "mug_1",
+        "target": "sink_1"
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Bring the mug from the counter to the sink.",
+      "family": "counter_to_sink",
+      "object": "mug_1",
+      "nemotron": {
+        "family": "counter_to_sink",
+        "object": "mug_1",
+        "target": "sink_1"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 3.43,
+      "rule": {
+        "family": "counter_to_sink",
+        "object": "mug_1",
+        "target": "sink_1"
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Move the mug to the sink.",
+      "family": "counter_to_sink",
+      "object": "mug_1",
+      "nemotron": {
+        "family": "counter_to_sink",
+        "object": "mug_1",
+        "target": "sink_1"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 3.854,
+      "rule": {
+        "family": "counter_to_sink",
+        "object": "mug_1",
+        "target": "sink_1"
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Take the mug and place it in the sink.",
+      "family": "counter_to_sink",
+      "object": "mug_1",
+      "nemotron": {
+        "family": "counter_to_sink",
+        "object": "mug_1",
+        "target": "sink_1"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 6.208,
+      "rule": {
+        "family": "counter_to_sink",
+        "object": "mug_1",
+        "target": "sink_1"
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Relocate the mug from the countertop to the sink.",
+      "family": "counter_to_sink",
+      "object": "mug_1",
+      "nemotron": {
+        "family": "counter_to_sink",
+        "object": "mug_1",
+        "target": "sink_1"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 3.669,
+      "rule": {
+        "family": "counter_to_sink",
+        "object": "mug_1",
+        "target": "sink_1"
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Transfer the mug to the sink location.",
+      "family": "counter_to_sink",
+      "object": "mug_1",
+      "nemotron": {
+        "family": "counter_to_sink",
+        "object": "mug_1",
+        "target": "sink_1"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 3.165,
+      "rule": {
+        "family": "counter_to_sink",
+        "object": "mug_1",
+        "target": "sink_1"
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Move the bowl from the counter to the island.",
+      "family": "counter_to_counter",
+      "object": "bowl_1",
+      "nemotron": {
+        "family": "counter_to_counter",
+        "object": "bowl_1",
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.859,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": "bowl_1",
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Carry the bowl across to the other counter.",
+      "family": "counter_to_counter",
+      "object": "bowl_1",
+      "nemotron": {
+        "family": "counter_to_counter",
+        "object": "bowl_1",
+        "target": "counter_b"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.785,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": "bowl_1",
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Place the bowl on the opposite counter.",
+      "family": "counter_to_counter",
+      "object": "bowl_1",
+      "nemotron": {
+        "family": "counter_to_counter",
+        "object": "bowl_1",
+        "target": "counter_b"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 3.304,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": "bowl_1",
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Take the bowl from the prep counter and set it on the cooking counter.",
+      "family": "counter_to_counter",
+      "object": "bowl_1",
+      "nemotron": {
+        "family": "counter_to_counter",
+        "object": "bowl_1",
+        "target": "counter_b"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 3.143,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": "bowl_1",
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Transfer the bowl from one counter to the other.",
+      "family": "counter_to_counter",
+      "object": "bowl_1",
+      "nemotron": {
+        "family": "counter_to_counter",
+        "object": "bowl_1",
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.224,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": "bowl_1",
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Pick up the bowl and move it to the far counter.",
+      "family": "counter_to_counter",
+      "object": "bowl_1",
+      "nemotron": {
+        "family": "put_in_drawer",
+        "object": "bowl_1",
+        "target": "counter_b"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": false,
+      "nemotron_seconds": 2.967,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": "bowl_1",
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Put the mug in the drawer.",
+      "family": "put_in_drawer",
+      "object": "mug_1",
+      "nemotron": {
+        "family": "put_in_drawer",
+        "object": "mug_1",
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.172,
+      "rule": {
+        "family": "put_in_drawer",
+        "object": "mug_1",
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Place the mug inside the drawer.",
+      "family": "put_in_drawer",
+      "object": "mug_1",
+      "nemotron": {
+        "family": "put_in_drawer",
+        "object": "mug_1",
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.547,
+      "rule": {
+        "family": "put_in_drawer",
+        "object": "mug_1",
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Store the mug in the drawer.",
+      "family": "put_in_drawer",
+      "object": "mug_1",
+      "nemotron": {
+        "family": "put_in_drawer",
+        "object": "mug_1",
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 3.155,
+      "rule": {
+        "family": "open_drawer",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": false
+    },
+    {
+      "set": "generated",
+      "instruction": "Insert the mug into the drawer.",
+      "family": "put_in_drawer",
+      "object": "mug_1",
+      "nemotron": {
+        "family": "put_in_drawer",
+        "object": "mug_1",
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.392,
+      "rule": {
+        "family": "open_drawer",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": false
+    },
+    {
+      "set": "generated",
+      "instruction": "Deposit the mug into the drawer.",
+      "family": "put_in_drawer",
+      "object": "mug_1",
+      "nemotron": {
+        "family": "put_in_drawer",
+        "object": "mug_1",
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.385,
+      "rule": {
+        "family": "open_drawer",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": false
+    },
+    {
+      "set": "generated",
+      "instruction": "Set the mug in the drawer.",
+      "family": "put_in_drawer",
+      "object": "mug_1",
+      "nemotron": {
+        "family": "put_in_drawer",
+        "object": "mug_1",
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.846,
+      "rule": {
+        "family": "open_drawer",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": false
+    },
+    {
+      "set": "generated",
+      "instruction": "Open the drawer.",
+      "family": "open_drawer",
+      "object": null,
+      "nemotron": {
+        "family": "open_drawer",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.989,
+      "rule": {
+        "family": "open_drawer",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Pull the drawer open.",
+      "family": "open_drawer",
+      "object": null,
+      "nemotron": {
+        "family": "open_drawer",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.119,
+      "rule": {
+        "family": "open_drawer",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Slide the drawer open.",
+      "family": "open_drawer",
+      "object": null,
+      "nemotron": {
+        "family": "open_drawer",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.028,
+      "rule": {
+        "family": "open_drawer",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Unlatch and open the drawer.",
+      "family": "open_drawer",
+      "object": null,
+      "nemotron": {
+        "family": "open_drawer",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 1.729,
+      "rule": {
+        "family": "open_drawer",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Activate the drawer mechanism.",
+      "family": "open_drawer",
+      "object": null,
+      "nemotron": {
+        "family": "open_drawer",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 3.203,
+      "rule": {
+        "family": "open_drawer",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Command the drawer to open.",
+      "family": "open_drawer",
+      "object": null,
+      "nemotron": {
+        "family": "open_drawer",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 1.891,
+      "rule": {
+        "family": "open_drawer",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Close the drawer.",
+      "family": "close_drawer",
+      "object": null,
+      "nemotron": {
+        "family": "close_drawer",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 3.212,
+      "rule": {
+        "family": "close_drawer",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Push the drawer shut.",
+      "family": "close_drawer",
+      "object": null,
+      "nemotron": {
+        "family": "close_drawer",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.347,
+      "rule": {
+        "family": "close_drawer",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Slide the drawer closed.",
+      "family": "close_drawer",
+      "object": null,
+      "nemotron": {
+        "family": "close_drawer",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.419,
+      "rule": {
+        "family": "close_drawer",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Latch the drawer closed.",
+      "family": "close_drawer",
+      "object": null,
+      "nemotron": {
+        "family": "close_drawer",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 3.838,
+      "rule": {
+        "family": "close_drawer",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Shut the kitchen drawer firmly.",
+      "family": "close_drawer",
+      "object": null,
+      "nemotron": {
+        "family": "close_drawer",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 3.109,
+      "rule": {
+        "family": "close_drawer",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Secure the drawer closed.",
+      "family": "close_drawer",
+      "object": null,
+      "nemotron": {
+        "family": "close_drawer",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.583,
+      "rule": {
+        "family": "close_drawer",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Open the cabinet door.",
+      "family": "open_door",
+      "object": null,
+      "nemotron": {
+        "family": "open_door",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.649,
+      "rule": {
+        "family": "open_door",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Pull the cabinet door open.",
+      "family": "open_door",
+      "object": null,
+      "nemotron": {
+        "family": "open_door",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 3.768,
+      "rule": {
+        "family": "open_door",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Swing the cabinet door open.",
+      "family": "open_door",
+      "object": null,
+      "nemotron": {
+        "family": "open_door",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.608,
+      "rule": {
+        "family": "open_door",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Unlatch and open the cabinet door.",
+      "family": "open_door",
+      "object": null,
+      "nemotron": {
+        "family": "open_door",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.0,
+      "rule": {
+        "family": "open_door",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Push the cabinet door open.",
+      "family": "open_door",
+      "object": null,
+      "nemotron": {
+        "family": "open_door",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 3.4,
+      "rule": {
+        "family": "close_door",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": false
+    },
+    {
+      "set": "generated",
+      "instruction": "Lift and open the cabinet door.",
+      "family": "open_door",
+      "object": null,
+      "nemotron": {
+        "family": "open_door",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.466,
+      "rule": {
+        "family": "open_door",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Close the cabinet door",
+      "family": "close_door",
+      "object": null,
+      "nemotron": {
+        "family": "close_door",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 3.924,
+      "rule": {
+        "family": "close_door",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Shut the cabinet door",
+      "family": "close_door",
+      "object": null,
+      "nemotron": {
+        "family": "close_door",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.995,
+      "rule": {
+        "family": "close_door",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Please close the cabinet door",
+      "family": "close_door",
+      "object": null,
+      "nemotron": {
+        "family": "close_door",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.654,
+      "rule": {
+        "family": "close_door",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Close and latch the cabinet door",
+      "family": "close_door",
+      "object": null,
+      "nemotron": {
+        "family": "close_door",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.082,
+      "rule": {
+        "family": "close_door",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Push the cabinet door shut",
+      "family": "close_door",
+      "object": null,
+      "nemotron": {
+        "family": "close_door",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.145,
+      "rule": {
+        "family": "close_door",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Fasten the cabinet door closed",
+      "family": "close_door",
+      "object": null,
+      "nemotron": {
+        "family": "close_door",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.351,
+      "rule": {
+        "family": "close_door",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Wipe the counter",
+      "family": "wipe_counter",
+      "object": null,
+      "nemotron": {
+        "family": "wipe_counter",
+        "object": null,
+        "target": "counter_a"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.506,
+      "rule": {
+        "family": "wipe_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Clean the countertop",
+      "family": "wipe_counter",
+      "object": null,
+      "nemotron": {
+        "family": "wipe_counter",
+        "object": "sponge_1",
+        "target": "counter_a"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.773,
+      "rule": {
+        "family": "wipe_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Sanitize the counter surface",
+      "family": "wipe_counter",
+      "object": null,
+      "nemotron": {
+        "family": "wipe_counter",
+        "object": "sponge_1",
+        "target": "counter_a"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.396,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": false
+    },
+    {
+      "set": "generated",
+      "instruction": "Remove debris from the counter",
+      "family": "wipe_counter",
+      "object": null,
+      "nemotron": {
+        "family": "wipe_counter",
+        "object": "sponge_1",
+        "target": "counter_a"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 3.637,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": false
+    },
+    {
+      "set": "generated",
+      "instruction": "Scrub the counter clean",
+      "family": "wipe_counter",
+      "object": null,
+      "nemotron": {
+        "family": "wipe_counter",
+        "object": "sponge_1",
+        "target": "counter_a"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.733,
+      "rule": {
+        "family": "wipe_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Wipe down the counter",
+      "family": "wipe_counter",
+      "object": null,
+      "nemotron": {
+        "family": "wipe_counter",
+        "object": "sponge_1",
+        "target": "counter_a"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.128,
+      "rule": {
+        "family": "wipe_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Open the fridge.",
+      "family": "open_fridge",
+      "object": null,
+      "nemotron": {
+        "family": "open_fridge",
+        "object": null,
+        "target": "fridge_1"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 1.749,
+      "rule": {
+        "family": "open_fridge",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Please open the fridge door.",
+      "family": "open_fridge",
+      "object": null,
+      "nemotron": {
+        "family": "open_door",
+        "object": null,
+        "target": "fridge_1"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": false,
+      "nemotron_seconds": 2.205,
+      "rule": {
+        "family": "open_fridge",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Swing the fridge door open.",
+      "family": "open_fridge",
+      "object": null,
+      "nemotron": {
+        "family": "open_fridge",
+        "object": null,
+        "target": "fridge_1"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.299,
+      "rule": {
+        "family": "open_fridge",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Pull the fridge handle and open it.",
+      "family": "open_fridge",
+      "object": null,
+      "nemotron": {
+        "family": "open_fridge",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 1.22,
+      "rule": {
+        "family": "open_fridge",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Crack the fridge open.",
+      "family": "open_fridge",
+      "object": null,
+      "nemotron": {
+        "family": "open_fridge",
+        "object": null,
+        "target": "fridge_1"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 1.872,
+      "rule": {
+        "family": "open_fridge",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Slide the fridge door open.",
+      "family": "open_fridge",
+      "object": null,
+      "nemotron": {
+        "family": "open_fridge",
+        "object": null,
+        "target": "fridge_1"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.214,
+      "rule": {
+        "family": "open_fridge",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "indirect",
+      "instruction": "The mug is dirty, get it ready to be washed.",
+      "family": "counter_to_sink",
+      "object": "mug_1",
+      "nemotron": {
+        "family": "counter_to_sink",
+        "object": "mug_1",
+        "target": "sink_1"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.774,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": "mug_1",
+        "target": null
+      },
+      "rule_ok": false
+    },
+    {
+      "set": "indirect",
+      "instruction": "I left my mug out, can you deal with it so I can rinse it later?",
+      "family": "counter_to_sink",
+      "object": "mug_1",
+      "nemotron": {
+        "family": "counter_to_sink",
+        "object": "mug_1",
+        "target": "sink_1"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 1.98,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": "mug_1",
+        "target": null
+      },
+      "rule_ok": false
+    },
+    {
+      "set": "indirect",
+      "instruction": "I need this counter clear for cooking; the bowl can go on the other side.",
+      "family": "counter_to_counter",
+      "object": "bowl_1",
+      "nemotron": {
+        "family": "counter_to_counter",
+        "object": "bowl_1",
+        "target": "counter_b"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 3.384,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": "bowl_1",
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "indirect",
+      "instruction": "Make some room by shifting the bowl down the counter.",
+      "family": "counter_to_counter",
+      "object": "bowl_1",
+      "nemotron": {
+        "family": "counter_to_counter",
+        "object": "bowl_1",
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.931,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": "bowl_1",
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "indirect",
+      "instruction": "Put the mug away somewhere I won't see it, in the drawer.",
+      "family": "put_in_drawer",
+      "object": "mug_1",
+      "nemotron": {
+        "family": "put_in_drawer",
+        "object": "mug_1",
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.092,
+      "rule": {
+        "family": "put_in_drawer",
+        "object": "mug_1",
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "indirect",
+      "instruction": "Stash the mug where the cutlery lives.",
+      "family": "put_in_drawer",
+      "object": "mug_1",
+      "nemotron": {
+        "family": "put_in_drawer",
+        "object": "mug_1",
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 3.404,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": "mug_1",
+        "target": null
+      },
+      "rule_ok": false
+    },
+    {
+      "set": "indirect",
+      "instruction": "I need a spoon, get the cutlery out where I can reach it.",
+      "family": "open_drawer",
+      "object": null,
+      "nemotron": {
+        "family": "open_drawer",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 6.648,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": false
+    },
+    {
+      "set": "indirect",
+      "instruction": "Someone left the cutlery drawer hanging out, fix that.",
+      "family": "close_drawer",
+      "object": null,
+      "nemotron": {
+        "family": "close_drawer",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.736,
+      "rule": {
+        "family": "open_drawer",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": false
+    },
+    {
+      "set": "indirect",
+      "instruction": "I'll bump my hip on that drawer, push it back in.",
+      "family": "close_drawer",
+      "object": null,
+      "nemotron": {
+        "family": "close_drawer",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.106,
+      "rule": {
+        "family": "close_drawer",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "indirect",
+      "instruction": "I want to grab a plate from the cupboard under the counter.",
+      "family": "open_door",
+      "object": null,
+      "nemotron": {
+        "family": "open_drawer",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": false,
+      "nemotron_seconds": 1.986,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": false
+    },
+    {
+      "set": "indirect",
+      "instruction": "The cupboard is gaping open, shut it.",
+      "family": "close_door",
+      "object": null,
+      "nemotron": {
+        "family": "close_drawer",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": false,
+      "nemotron_seconds": 2.235,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": false
+    },
+    {
+      "set": "indirect",
+      "instruction": "There are crumbs everywhere, clean up the counter.",
+      "family": "wipe_counter",
+      "object": null,
+      "nemotron": {
+        "family": "wipe_counter",
+        "object": "sponge_1",
+        "target": "counter_a"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.254,
+      "rule": {
+        "family": "wipe_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "indirect",
+      "instruction": "The counter is sticky, give it a once-over with the sponge.",
+      "family": "wipe_counter",
+      "object": null,
+      "nemotron": {
+        "family": "wipe_counter",
+        "object": "sponge_1",
+        "target": "counter_a"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.515,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": "sponge_1",
+        "target": null
+      },
+      "rule_ok": false
+    },
+    {
+      "set": "indirect",
+      "instruction": "I want to see what we have for dinner in the fridge.",
+      "family": "open_fridge",
+      "object": null,
+      "nemotron": {
+        "family": "open_fridge",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.708,
+      "rule": {
+        "family": "open_fridge",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true
+    },
+    {
+      "set": "indirect",
+      "instruction": "Let me check if we're out of milk.",
+      "family": "open_fridge",
+      "object": null,
+      "nemotron": {
+        "family": "open_fridge",
+        "object": null,
+        "target": "fridge_1"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.447,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": false
+    }
+  ]
+}

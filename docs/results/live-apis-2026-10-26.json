@@ -1,0 +1,45 @@
+{
+  "run_at": "2026-10-26T19:21:23+00:00",
+  "checks": {
+    "token_factory_planner": {
+      "ok": true,
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "seconds": 2.484,
+      "source": "token_factory",
+      "plan": {
+        "family": "counter_to_sink",
+        "object": "mug_1",
+        "target": "sink_1"
+      },
+      "log": []
+    },
+    "token_factory_wordings": {
+      "ok": true,
+      "model": "nvidia/Nemotron-3_5-Lightning",
+      "seconds": 4.297,
+      "source": "token_factory",
+      "train": [
+        "Pick up the mug from the counter and carry it to the sink.",
+        "Take the mug from the counter over to the sink.",
+        "Move the mug from the counter to the sink."
+      ],
+      "eval": [
+        "Bring the mug from the counter to the sink."
+      ]
+    },
+    "tavily_research": {
+      "ok": true,
+      "seconds": 0.402,
+      "source": "tavily_api",
+      "summary": "According to the eCFR, refrigerator doors must be able to open with a force not exceeding 66.7 newtons (15 pounds). GE Appliances also confirms that refrigerators and freezers meet a federal requirement limiting the force needed to open an empty door to 15 pounds. However, a YouTube video suggests a",
+      "sources": [
+        "https://www.ecfr.gov/current/title-16/chapter-II/subchapter-F/part-1750",
+        "https://www.chemicalforums.com/index.php?topic=56086.0",
+        "https://www.youtube.com/watch?v=BJrr2tOiNwc",
+        "https://products.geappliances.com/appliance/gea-support-search-content?contentId=16775",
+        "https://idighardware.com/2009/02/door-opening-force"
+      ],
+      "log": []
+    }
+  }
+}

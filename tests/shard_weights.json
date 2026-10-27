@@ -1,6 +1,7 @@
 {
  "tests/test_any_wall.py": 79.5,
  "tests/test_appliance_tasks.py": 79.4,
+ "tests/test_check_site.py": 0.1,
  "tests/test_ci_hygiene.py": 0.7,
  "tests/test_cli.py": 0.4,
  "tests/test_compile.py": 0.1,
@@ -73,6 +74,7 @@
  "tests/test_scan_fixtures.py": 4.4,
  "tests/test_scan_fuzz.py": 0.6,
  "tests/test_scans.py": 0.0,
+ "tests/test_scanning_doc.py": 0.1,
  "tests/test_scene.py": 26.4,
  "tests/test_shards.py": 45.9,
  "tests/test_sim.py": 151.8,

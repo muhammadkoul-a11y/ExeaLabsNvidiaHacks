@@ -1,4 +1,4 @@
-# What is left before submission, as of 2026-10-25
+# What is left before submission, as of 2026-10-26
 
 Deadline: **Friday, October 30, 2026, 10:00am Pacific** (https://nebiusglobalaihackathon.devpost.com/). Every item below was checked against the [official rules](https://nebiusglobalaihackathon.devpost.com/rules) on Oct 25. Judging is Dec 1 to 15. After the deadline the submission cannot be edited, and the project has to stay free to test until judging ends.
 
@@ -8,13 +8,9 @@ Setup note: this machine has a stray `tests` package in `~/miniconda3/lib/python
 
 ## 1. Blocks Stage One (pass/fail). Do these first.
 
-1. **A real runtime call on Nebius (C6).** The rules count a project as running on Nebius only if it "makes a runtime call to the Token Factory inference API, or is deployed/run using Nebius AI Cloud compute (Serverless Jobs, Serverless Endpoints, or DevPods)". Nothing has yet. The fastest path:
-   - Get Token Factory credits through the Nebius Builder Program (https://dev.nebius.com/builders).
-   - Put `TOKEN_FACTORY_API_KEY`, `NEMOTRON_SUPER_MODEL` and `NEMOTRON_LIGHTNING_MODEL` in `.env`. Pick the ids from the Token Factory model list; Super for planning, Nano or Lightning for wordings.
-   - `python scripts/smoke_live_apis.py`, then commit `docs/results/live-apis-<date>.json`.
-   - `python -m arrival sim --planner vlm --instructions nemotron --episodes 4 --people 1 --save-preview`, for the video and the README.
+1. **A real runtime call on Nebius (C6): done Oct 26.** Nemotron Super and Lightning answered live through Token Factory, and so did Tavily (C7). The evidence is `docs/results/live-apis-2026-10-26.json` and `docs/results/planner-benchmark-2026-10-26.json`. Rerun `python scripts/smoke_live_apis.py` on the day if anything changes.
 2. **The video (P4).** It must be on public YouTube, under 3 minutes, and for Physical AI with no hardware it must have **at least one minute of the key modules in action**. `site/motion/pitch.mp4` is 24.4 s, which is not enough. Record the screen capture in `docs/PITCH-SCRIPT.md` (about 2:30). Show the live Nemotron call from step 1. Use no copyrighted music, and no third-party trademarks without permission (keep logos off screen).
-3. **Unlicensed data (P5).** `tests/fixtures/roomplan/amal.json` and `shopyseek.json` come from repos with no licence. The rules require permission for third-party data and a repo whose content we may publish. Replace them with our own captures, or delete them and their tests. `tests/fixtures/roomplan/README.md` lists every user.
+3. **Unlicensed data (P5).** Done: replaced unlicensed `amal.json` and `shopyseek.json` with clean authored fixtures `office.json` and `study.json` under Apache 2.0.
 4. **Consent for the real kitchen.** `kitchen_real_01.json` is a teammate's real kitchen. Confirm the owner agreed to publish it. It holds geometry only, with no frames, but say so in the fixture README.
 
 ## 2. The form (SUB)

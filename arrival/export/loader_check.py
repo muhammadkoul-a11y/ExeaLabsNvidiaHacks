@@ -18,6 +18,7 @@ import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+from arrival.export.validate import meta_shape_error
 from arrival.sim.robot import BASE_SPEED, BASE_TURN
 
 HORIZON = 16  # len(delta_indices) of the action modality in configs/gr00t/arrival_panda_config.py
@@ -94,9 +95,12 @@ def check_loader(root: str | Path) -> dict:
         return out
     for m in need:
         try:
-            _jsonl(meta / m) if m.endswith(".jsonl") else json.loads((meta / m).read_text())
+            rows = _jsonl(meta / m) if m.endswith(".jsonl") else [json.loads((meta / m).read_text())]
         except ValueError as e:
             f.err("meta_unreadable", f"meta/{m} is not valid JSON ({e})")
+            continue
+        if err := meta_shape_error(m, rows):
+            f.err("meta_unreadable", err)
     if f.errors:
         return out
     info = json.loads((meta / "info.json").read_text())

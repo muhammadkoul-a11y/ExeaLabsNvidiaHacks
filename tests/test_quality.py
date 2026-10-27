@@ -187,6 +187,21 @@ def test_drop_in_the_middle_reindexes_and_keeps_validity(tmp_path):
     assert t.column("index").to_pylist() == list(range(t.num_rows))
 
 
+def test_drop_of_a_whole_family_removes_it_from_info(tmp_path):
+    w = SimDatasetWriter(tmp_path / "ds", "qa_room", 20, RES, ("ego_view", "wrist"))
+    for i in range(5):
+        s, a = trace(60 + 2 * i, phase=i * 0.1)
+        w.add_episode(episode(s, a, seed=i), {"instruction": "open the drawer", "family": "open_drawer", "lighting": "day"})
+    s, a = trace()
+    w.add_episode(episode(np.repeat(s[:1], 64, 0), a),
+                  {"instruction": "pick up the cup", "family": "pick_place", "lighting": "day"})
+    w.finish(len(w.episodes))
+    quality.drop_flagged(tmp_path / "ds", tmp_path / "clean")
+    info = json.loads((tmp_path / "clean" / "meta" / "info.json").read_text())
+    assert info["arrival_families"] == ["open_drawer"]  # the web room page lists these as what the dataset holds
+    assert validate(tmp_path / "clean") == []
+
+
 def test_drop_refuses_existing_output_inside_source_and_all_flagged(ds, tmp_path):
     root, _ = ds
     (tmp_path / "exists").mkdir()
@@ -221,6 +236,21 @@ def test_truncated_meta_file_is_reported_not_a_traceback(tmp_path, capsys, name)
     assert f"meta/{name} is not valid JSON" in capsys.readouterr().err
     res = check_loader(root)
     assert not res["ok"] and [e["code"] for e in res["errors"]] == ["meta_unreadable"]
+
+
+@pytest.mark.parametrize("name,text,msg", [(m, "[]", ("line 1 " if m.endswith(".jsonl") else "") + "is a JSON list, not an object") for m in META] + [
+    ("episodes.jsonl", '{"episode_index": 0}', "line 1 has no length"),
+    ("tasks.jsonl", '{"task": "x"}', "line 1 has no task_index")])
+def test_wrong_shape_meta_file_is_reported_not_a_traceback(tmp_path, capsys, name, text, msg):
+    root = tmp_path / "ds"
+    build(root, {})
+    (root / "meta" / name).write_text(text)
+    assert validate(root) == [f"meta/{name} {msg}"]
+    assert cli.main(["validate", str(root), "--episodes"]) == cli.EXIT_INVALID
+    assert f"meta/{name} {msg}" in capsys.readouterr().err
+    res = check_loader(root)
+    assert not res["ok"] and [(e["code"], e["msg"]) for e in res["errors"]] == [
+        ("meta_unreadable", f"meta/{name} {msg}")]
 
 
 def test_cli_plain_validate_ignores_quality(tmp_path):

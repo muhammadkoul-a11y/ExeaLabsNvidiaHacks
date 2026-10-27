@@ -57,6 +57,16 @@ def test_makefile_clean_only_removes_out():
     assert "rm -rf $(OUT)" in text.split("\nclean:", 1)[1]
 
 
+def test_make_install_installs_what_make_lint_and_contributing_need():
+    # make lint runs ruff, which only the lint extra installs; CONTRIBUTING offers `make install` as the same step
+    install = (ROOT / "Makefile").read_text(encoding="utf-8").split("\ninstall:", 1)[1].split("\n\n", 1)[0]
+    make_extras = set(re.search(r'-e "\.\[([\w,]+)\]"', install).group(1).split(","))
+    guide = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
+    guide_extras = set(re.search(r'pip install -e "\.\[([\w,]+)\]"\s+# or: make install', guide).group(1).split(","))
+    assert "lint" in make_extras
+    assert make_extras == guide_extras
+
+
 @pytest.mark.skipif(shutil.which("make") is None, reason="make not installed")
 def test_make_dry_run_parses():
     r = subprocess.run(["make", "-n", "test", "sim", "validate", "demo"], cwd=ROOT, capture_output=True, text=True)

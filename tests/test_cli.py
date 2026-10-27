@@ -32,6 +32,21 @@ def test_sim_negative_people_or_seed_is_a_usage_error_and_keeps_the_old_dataset(
     assert old.is_file()
 
 
+def test_sim_tavily_without_the_vlm_planner_is_a_usage_error(tmp_path, capsys, monkeypatch):
+    """Only the VLM planner reads the research: with --planner rule, --tavily made its lookups and changed nothing."""
+    pytest.importorskip("mujoco")
+    monkeypatch.chdir(tmp_path)  # resolve_scans falls back to the repo's scans/
+
+    def no_lookup(*a, **k):
+        raise AssertionError("research ran")
+
+    monkeypatch.setattr("arrival.tasks.tavily_research.TavilyResearchAgent", no_lookup)
+    assert cli.main(["sim", "--tavily", "--episodes", "1", "--families", "open_drawer",
+                     "--out", str(tmp_path)]) == cli.EXIT_USAGE
+    assert "--tavily needs --planner vlm" in capsys.readouterr().err
+    assert not (tmp_path / "datasets").exists()
+
+
 def test_research_missing_room_is_usage_error(tmp_path, capsys, monkeypatch):
     monkeypatch.setattr("arrival.tasks.tavily_research.TavilyResearchAgent", lambda *a, **k: object())
     assert cli.cmd_research(_ns(tmp_path)) == cli.EXIT_USAGE
@@ -165,3 +180,39 @@ def test_fanout_bad_config_is_usage_error(tmp_path, capsys, kw, expected):
     err = capsys.readouterr().err
     assert err.startswith("fanout: ") and expected in err
     assert not (tmp_path / "fanout_store").exists()
+
+
+@pytest.mark.parametrize("bad_family", ["bogus", "counter_to_sink,open_drwaer"])
+def test_fanout_unknown_family_is_usage_error_before_any_shard(tmp_path, capsys, monkeypatch, bad_family):
+    """Every shard's sim would reject the name, so fanout used to launch and retry each shard (Nebius jobs too)."""
+    pytest.importorskip("mujoco")
+    monkeypatch.setattr("arrival.jobs.fanout.run_fanout", lambda *a, **k: pytest.fail("a shard was launched"))
+    ns = _ns(tmp_path, backend="local", run_id="r", shards=2, families=bad_family)
+    assert cli.cmd_fanout(ns) == cli.EXIT_USAGE
+    err = capsys.readouterr().err
+    assert err.startswith("fanout: unknown families") and "open_drawer" in err
+    assert not (tmp_path / "fanout_store").exists()
+
+
+def test_fanout_accepts_all_families(tmp_path, monkeypatch):
+    pytest.importorskip("mujoco")
+    seen = []
+    def fake_run(rec, cfg, out):
+        seen.append(cfg.families)
+        return {"dataset": tmp_path, "ran": [0], "skipped": []}
+    monkeypatch.setattr("arrival.jobs.fanout.run_fanout", fake_run)
+    monkeypatch.setattr("arrival.export.validate.validate", lambda d: [])
+    ns = _ns(tmp_path, backend="local", run_id="r", shards=1, families="all")
+    assert cli.cmd_fanout(ns) == cli.EXIT_OK
+    assert seen == ["all"]
+
+
+@pytest.mark.parametrize("command", ["sim", "eval", "work", "summary"])
+def test_families_help_lists_every_sim_family(command, capsys):
+    from arrival.sim.tasks import SIM_FAMILIES
+
+    with pytest.raises(SystemExit):
+        cli.build_parser().parse_args([command, "--help"])
+    out = capsys.readouterr().out
+    assert [f for f in SIM_FAMILIES if f not in out] == []
+    assert [f.strip() for f in cli.FAMILY_NAMES.split(",")] == list(SIM_FAMILIES)

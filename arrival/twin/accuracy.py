@@ -48,7 +48,7 @@ class MeasurementError(ValueError):
 
 
 def load_measurements(path: str | Path) -> dict:
-    data = json.loads(Path(path).read_text())
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
     if not isinstance(data, dict):
         raise MeasurementError(f"{path}: expected a JSON object")
     missing = [k for k in REQUIRED if k not in data]

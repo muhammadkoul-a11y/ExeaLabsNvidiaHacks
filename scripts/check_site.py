@@ -5,6 +5,7 @@ Usage:  python scripts/check_site.py [--base http://localhost:8765] [--offline]
 
 Default: fetches over HTTP from a running `make site` and requires a 200 for the page and every referenced file.
 --offline: resolves the same paths on disk under site/ instead (no server needed).
+With no server at --base it says so in one line and exits 1.
 Referenced paths come from index.html (src, href, importmap), css/*.css (url(...)), js/*.js (static and dynamic import
 specifiers, new URL('...', import.meta.url), and fetched data paths), plus the files the data README promises
 (6 episodes, 24 previews). Standard library only.
@@ -77,6 +78,18 @@ def main():
     a = ap.parse_args()
     found = collect()
     bad, seen = [], set()
+    if not a.offline:
+        try:
+            with urllib.request.urlopen(a.base + "/", timeout=10) as r:
+                html = r.read().decode()
+        except (urllib.error.URLError, OSError) as e:
+            # checked first: with no server each path would wait on its own refused connect (about 4 s on Windows)
+            print(f"no site at {a.base}/ ({e}); start one with `make site`, or pass --offline")
+            sys.exit(1)
+        if "<canvas" in html and "js/main.js" in html:
+            print(f"page ok: {a.base}/ ({len(html)} bytes)")
+        else:
+            bad.append(("page", a.base, "page loaded but looks wrong"))
     for src, p in found:
         if p in seen:
             continue
@@ -96,14 +109,6 @@ def main():
                         bad.append((src, rel, f"HTTP {r.status}"))
             except (urllib.error.URLError, OSError) as e:
                 bad.append((src, rel, f"unreachable: {e}"))
-    if not a.offline:
-        try:
-            with urllib.request.urlopen(a.base + "/", timeout=10) as r:
-                html = r.read().decode()
-            assert "<canvas" in html and "js/main.js" in html, "page loaded but looks wrong"
-            print(f"page ok: {a.base}/ ({len(html)} bytes)")
-        except Exception as e:  # noqa: BLE001
-            bad.append(("page", a.base, str(e)))
     print(f"checked {len(seen)} distinct referenced paths")
     for src, rel, why in bad:
         print(f"  FAIL {rel}  (from {src}): {why}")

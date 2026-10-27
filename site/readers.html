@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Arrival Readers</title>
+<meta name="description" content="Read one line of the Arrival film: take a line, record it on your phone, and send it in. Your face and name go on a card in the film while your line plays.">
+<!-- shared by link with the readers; keep it out of search results -->
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#EFE9DC" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111418" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Read one line of the Arrival film">
+<meta property="og:description" content="37 lines for the Arrival film. Take up to three, record them on your phone, and send them in.">
+<meta property="og:image" content="https://arrival.exealabs.org/readers/poster.jpg">
+<meta property="og:url" content="https://arrival.exealabs.org/readers">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="/fonts/fraunces-opsz.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/dm-mono-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/dm-mono-500.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/readers/readers.css">
+<script>
+  // Follow the theme picked on the home page (day / night), else the system setting. Storage may be blocked; fine.
+  (function () { try { var t = localStorage.getItem('arrival-theme'); if (t === 'day' || t === 'night') document.documentElement.dataset.theme = t === 'day' ? 'light' : 'dark'; } catch (e) {} })();
+</script>
+<script src="/readers/readers.js" defer></script>
+</head>
+<body>
+<div class="wrap">
+  <nav class="top" aria-label="Site"><a class="home" href="/"><span aria-hidden="true">←</span> Arrival home</a></nav>
+
+  <header class="head">
+    <div>
+      <p class="kicker">The Arrival film · <span data-length>2:26</span> · <span data-count>37</span> lines</p>
+      <h1>Read one line of the Arrival film</h1>
+      <p class="lede">The film has <span data-count>37</span> lines and we want as many voices as we can get. Take one, two or three (three at most), record each on your phone, and send them in. Your face goes on a card in the film, with your name on it, while your line plays: large on the left over the big shots, small in the corner over the code.</p>
+      <p class="progress" id="progress">Checking who is reading which line…</p>
+    </div>
+    <figure class="polaroid">
+      <div class="frame">
+        <img src="/readers/poster.jpg" width="880" height="368" alt="A frame of the Arrival film: a white robot arm rising in a dark kitchen at night">
+        <div class="slot" aria-hidden="true"></div>
+      </div>
+      <figcaption class="cap">Your face and name go here, <span>large on the marked lines</span></figcaption>
+    </figure>
+  </header>
+
+  <section class="admin" id="admin" hidden aria-labelledby="admin-h">
+    <h2 id="admin-h">Organiser</h2>
+    <form class="adminform" id="adminform">
+      <label for="adminkey">Admin key</label>
+      <div class="acts">
+        <input id="adminkey" name="adminkey" type="password" autocomplete="current-password" spellcheck="false" aria-describedby="adminerr">
+        <button class="btn" type="submit">Unlock</button>
+      </div>
+      <p class="err" id="adminerr" hidden></p>
+    </form>
+    <div class="adminon" id="adminon" hidden>
+      <p>You can rename or clear any line and mark takes in. <a href="#forasm">names.json is at the bottom</a>.</p>
+      <button class="btn ghost" id="adminlock" type="button">Lock</button>
+    </div>
+  </section>
+
+  <div class="notes" id="notes"></div>
+  <noscript><p class="note">This page needs JavaScript to show the script and to take a line.</p></noscript>
+
+  <section class="how" aria-labelledby="how-h">
+    <h2 id="how-h">How to record your line</h2>
+    <ol>
+      <li>Hold your phone in landscape at eye level, in a quiet room, with a window or a lamp in front of you, not behind.</li>
+      <li>Look into the lens. Wait one second, read your line once, naturally, then wait one more second. Record it three times.</li>
+      <li>Fit the time under "say it in". The film is fast, so say it with energy, like a trailer. If you run over, speed up rather than cutting words.</li>
+      <li>Numbers are written the way to say them ("sixty-one", "thirteen of fifteen"). Say "GR00T" as "groot" and "N1.7" as "N one point seven".</li>
+      <li><span>Send your best take of each line, named <code>NN_firstname.mp4</code> (NN is the two-digit line number), to the person who shared this page, with your name as you want it shown.</span></li>
+    </ol>
+  </section>
+
+  <p class="legend"><span class="big">on screen large</span> <span>On these lines your face is shown large in the film, not only in the corner.</span></p>
+
+  <div class="chapters" id="chapters" aria-busy="true"><p class="loading">Loading the script…</p></div>
+
+  <section class="forasm" id="forasm" hidden aria-labelledby="asm-h">
+    <h2 id="asm-h">Names for the assembler</h2>
+    <p>Save this as <code>names.json</code> next to the takes, then run <code>tools/assemble.py</code> from <code>arrival-film/</code>. It prints each reader's name under their polaroid.</p>
+    <pre id="names">{}</pre>
+    <div class="acts"><button class="btn" id="copy" type="button">Copy names.json</button><span class="flash" id="flash" aria-live="polite"></span></div>
+  </section>
+
+  <p class="foot">Every number in these lines is sourced in the film's FACTS.md. The film is about Arrival: scan a room once, get robot training data for that exact room.</p>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+<p class="sr-only" id="sr" aria-live="polite"></p>
+</body>
+</html>

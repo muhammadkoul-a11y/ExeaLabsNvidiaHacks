@@ -13,6 +13,10 @@ from arrival.config import get as get_setting
 from arrival.config import redact
 
 EXIT_OK, EXIT_INVALID, EXIT_USAGE = 0, 1, 2
+# arrival.sim.tasks.SIM_FAMILIES, spelled out because importing it loads MuJoCo
+FAMILY_NAMES = ("counter_to_sink, counter_to_counter, open_drawer, open_door, close_drawer, close_door, put_in_drawer, "
+                "wipe_counter, open_fridge, move_on_table, open_oven, open_dishwasher, turn_on_faucet, load_dishwasher, "
+                "unload_dishwasher")
 
 
 def resolve_scans(scans_dir: str | Path = "scans") -> Path:
@@ -237,10 +241,16 @@ def cmd_sim(a) -> int:
     if not (math.isfinite(dart) and dart >= 0):  # -1 and nan ran with no noise but were written to info.json
         print("--dart must be a finite number >= 0 (0 = off)", file=sys.stderr)
         return EXIT_USAGE
+    if getattr(a, "tavily", False) and getattr(a, "planner", "rule") != "vlm":
+        # only VLMPlanner reads the research; with the rule planner the lookups ran and changed nothing
+        print("--tavily needs --planner vlm: the research only goes into the Nemotron planner's prompt", file=sys.stderr)
+        return EXIT_USAGE
     if getattr(a, "tavily", False):
         from arrival.tasks.tavily_research import TavilyResearchAgent
         agent = TavilyResearchAgent()
         twin = agent.enrich_twin(twin)
+        for ftype, info in twin["tavily_research"].items():  # say what the planner will be told, and where it came from
+            print(f"[tavily] {ftype}: {info['source']}, {len(info['sources'])} sources: {info['summary'][:100]}")
     from arrival.sim.collect import collect
     from arrival.sim.policy import VLANotConfigured
 
@@ -293,7 +303,13 @@ def cmd_fanout(a) -> int:
     from arrival.jobs.fanout import FanoutConfig, LocalBackend, run_fanout
     from arrival.jobs.fanout_status import StatusRecorder
     from arrival.jobs.shards import ShardError
+    from arrival.sim.tasks import SIM_FAMILIES
 
+    if a.families != "all":
+        bad = [f.strip() for f in a.families.split(",") if f.strip() and f.strip() not in SIM_FAMILIES]
+        if bad:  # every shard's sim would reject them, after the backend launched and retried it
+            print(f"fanout: unknown families {bad} (choose from {', '.join(SIM_FAMILIES)})", file=sys.stderr)
+            return EXIT_USAGE
     try:
         cfg = FanoutConfig(a.run_id, a.shards, a.room, a.families, a.episodes, a.people, a.res, a.seed, a.scans,
                            getattr(a, "dart", 0.0), getattr(a, "base", "fixed"), getattr(a, "exocentric", False))
@@ -683,7 +699,7 @@ def build_parser() -> argparse.ArgumentParser:
     m.add_argument("--room", default="hero_kitchen")
     m.add_argument("--episodes", type=int, default=8)
     m.add_argument("--families", default="counter_to_sink,open_drawer,move_on_table",
-                   help="all | comma list of counter_to_sink,counter_to_counter,open_drawer,open_door,move_on_table (a family with no variation in this room is skipped)")
+                   help=f"all | comma list of {FAMILY_NAMES} (a family with no variation in this room is skipped)")
     m.add_argument("--people", type=int, default=2)
     m.add_argument("--policy", choices=["scripted", "vla"], default="scripted")
     m.add_argument("--planner", choices=["rule", "vlm"], default="rule",
@@ -712,7 +728,7 @@ def build_parser() -> argparse.ArgumentParser:
                    help="DART: drive the arm with smooth noise, typical std RAD (each episode uses 0.4x to 1.6x), on the joint targets while the dataset "
                         "keeps the clean targets, so a policy sees off-plan states labelled with the way back; "
                         "0 (default) is off, 0.02 to 0.05 is a useful range. Recorded in the dataset provenance")
-    m.add_argument("--tavily", action="store_true", help="Enrich digital twin and VLM planning with Tavily appliance research")
+    m.add_argument("--tavily", action="store_true", help="Enrich digital twin and VLM planning with Tavily appliance research (needs --planner vlm)")
     m.set_defaults(fn=cmd_sim)
     f = sub.add_parser("fanout", help="run sim shards on a job backend, resumable, then merge (local by default)")
     f.add_argument("--backend", choices=["local", "nebius"], default="local",
@@ -753,7 +769,8 @@ def build_parser() -> argparse.ArgumentParser:
     e = sub.add_parser("eval", help="score a policy on fresh or frozen trials; preserve every run")
     e.add_argument("--room")
     e.add_argument("--policy", choices=["scripted", "vla"], default="scripted")
-    e.add_argument("--families", help="all | comma-separated task families (default: counter_to_sink,open_drawer,move_on_table; a family with no variation in this room is skipped)")
+    e.add_argument("--families", help=f"all | comma list of {FAMILY_NAMES} (default: counter_to_sink,open_drawer,move_on_table; "
+                        "a family with no variation in this room is skipped)")
     e.add_argument("--episodes", type=int, help="episodes per family (default: 4)")
     e.add_argument("--seed", type=int)
     e.add_argument("--people", type=int)
@@ -789,7 +806,7 @@ def build_parser() -> argparse.ArgumentParser:
     w.add_argument("--poll", type=float, default=2.0, help="seconds between queue checks")
     w.add_argument("--episodes", type=int, default=8)
     w.add_argument("--families", default="counter_to_sink,open_drawer,move_on_table",
-                   help="all | comma list of counter_to_sink,counter_to_counter,open_drawer,open_door,move_on_table (a family with no variation in this room is skipped)")
+                   help=f"all | comma list of {FAMILY_NAMES} (a family with no variation in this room is skipped)")
     w.add_argument("--people", type=int, default=1)
     w.add_argument("--res", type=int, default=128)
     w.add_argument("--seed", type=int, default=0)
@@ -817,10 +834,10 @@ def build_parser() -> argparse.ArgumentParser:
     u = sub.add_parser("summary", help="tiny run on several rooms: compile / sim / validate table (markdown + json)")
     u.add_argument("--rooms", default=None,
                    help="comma list of scan names under --scans or paths to RoomPlan/scan .json files "
-                        "(default: hero_kitchen plus the two real RoomPlan fixtures)")
+                        "(default: hero_kitchen plus the two authored RoomPlan fixtures)")
     u.add_argument("--episodes", type=int, default=2, help="episode attempts per room")
     u.add_argument("--families", default="counter_to_sink,open_drawer",
-                   help="all | comma list of counter_to_sink,counter_to_counter,open_drawer,open_door")
+                   help=f"all | comma list of {FAMILY_NAMES}")
     u.add_argument("--people", type=int, default=1)
     u.add_argument("--res", type=int, default=64)
     u.add_argument("--seed", type=int, default=0)

@@ -1,4 +1,4 @@
-"""SIM-5 and L9: a real non-kitchen RoomPlan scan (tests/fixtures/roomplan/amal.json, a table and two chairs) becomes
+"""SIM-5 and L9: an authored non-kitchen RoomPlan fixture (tests/fixtures/roomplan/office.json, a table and two chairs) becomes
 a room the arm can work in: the table is a table, furniture is solid, the room holds office things (a laptop, a book,
 a cup) instead of a mug and plate, and move_on_table episodes pass physics."""
 
@@ -28,7 +28,7 @@ def _room(name: str) -> dict:
 
 @pytest.fixture(scope="module")
 def office():
-    return _room("amal")
+    return _room("office")
 
 
 def test_table_is_built_as_a_table(office):
@@ -73,8 +73,8 @@ def test_people_walk_the_office_without_crashing(office):
 
 
 def test_desk_behind_a_chair_gets_no_task():
-    # shopyseek: the desk's only free long side is where its chair stands, so a fixed base has nowhere to stand
-    assert make_tasks(_room("shopyseek"), ["move_on_table"], 4, log=lambda *_: None) == []
+    # study: the desk's only free long side is where its chair stands, so a fixed base has nowhere to stand
+    assert make_tasks(_room("study"), ["move_on_table"], 4, log=lambda *_: None) == []
 
 
 # ---- L9: room-appropriate objects ----
@@ -85,7 +85,7 @@ def _fx(category: str) -> dict:
 
 def test_room_kind_from_scanned_categories(office):
     assert room_kind(office["fixtures"]) == "office"  # a table, chairs and storage
-    assert room_kind(_room("shopyseek")["fixtures"]) == "bedroom"  # a bed wins over the television
+    assert room_kind(_room("study")["fixtures"]) == "bedroom"  # a bed wins over the television
     assert room_kind([_fx("sofa"), _fx("television"), _fx("table")]) == "living_room"
     assert room_kind([_fx("table"), _fx("chair"), _fx("sink")]) == "kitchen"  # one kitchen fixture is enough
     assert room_kind([]) == "kitchen"  # nothing scanned: the pipeline's original assumption
@@ -103,7 +103,7 @@ def test_office_holds_office_things_not_a_mug_and_plate(office):
 
 
 def test_living_room_gets_a_remote_and_a_kitchen_keeps_its_five():
-    living = compile_twin(roomplan.load(FIXTURES / "amal.json", "amal"))
+    living = compile_twin(roomplan.load(FIXTURES / "office.json", "office"))
     chair = next(f for f in living["fixtures"] if f["source_category"] == "chair")
     living["fixtures"].append({**chair, "id": "sofa_x", "source_category": "sofa"})
     assert room_kind(living["fixtures"]) == "living_room"
