@@ -42,6 +42,12 @@ OPTIONAL_ENV = (
     ("COSMOS_URL", "Cosmos appearance restyle"),
     *((k, NEBIUS_PURPOSES.get(k, "Nebius Cloud fanout")) for k in (*JOB_SETTINGS, *STORE_SETTINGS)),
 )
+# Model ids the key needs, with what each one drives. The ultra role is never called, so it is not checked.
+TOKEN_FACTORY_MODELS = (
+    ("NEMOTRON_SUPER_MODEL", "the planner (sim --planner vlm)"),
+    ("NEMOTRON_LIGHTNING_MODEL", "the instruction writer (--instructions nemotron)"),
+    ("NEMOTRON_OMNI_MODEL", "small-object detection in scan frames"),
+)
 FREE_WARN_GIB, FREE_FAIL_GIB = 2.0, 0.25
 GIB = 1024 ** 3
 REPO = Path(__file__).resolve().parents[1]
@@ -153,6 +159,10 @@ def check_env(environ: dict[str, str] | None = None, env_files: list[Path] | Non
             out.append(Check(name, "ok", f"set in {in_file[name].name} (read by the module that needs it)"))
         else:
             out.append(Check(name, "info", f"not set (optional: {purpose})"))
+    if environ.get("TOKEN_FACTORY_API_KEY") or "TOKEN_FACTORY_API_KEY" in in_file:
+        for name, purpose in TOKEN_FACTORY_MODELS:
+            if not (environ.get(name) or name in in_file):
+                out.append(Check(name, "warn", f"not set, so {purpose} falls back offline even with the key (see .env.example)"))
     return out
 
 

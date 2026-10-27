@@ -8,7 +8,7 @@ import math
 import random
 
 from arrival.catalog.objects import GRASPABLE, PICKABLE, TABLE_MOVABLE, WIPE_TOOLS
-from arrival.sim.scene import is_table
+from arrival.sim.scene import has_door, has_drawers, is_table
 from arrival.tasks.propose import LIGHTING, POSE_OFFSETS, WORDINGS, top_z
 from arrival.sim.preflight import DISHWASHER_SIDE, check_task
 from arrival.sim.reach import find_shift
@@ -26,6 +26,7 @@ SIM_FAMILIES = ("counter_to_sink", "counter_to_counter", "open_drawer", "open_do
                 "turn_on_faucet", "load_dishwasher", "unload_dishwasher")
 HOLDOUT_WORDING = 3  # docs/07-eval.md: template 4 and the (0, +0.08) offset are for evaluation only
 HOLDOUT_OFFSET = [0.0, 0.08]
+EDGE_GAP = 0.02  # an offset start keeps the object's footprint this far inside the counter's edge
 SIM_WORDINGS = {
     **WORDINGS,
     "open_drawer": ["Open the top drawer.", "Pull the top drawer of the {name} open.",
@@ -124,18 +125,35 @@ def _holder(o: dict, counters: list[dict]) -> dict | None:
     return None
 
 
-def _offset_start(src: dict, start, off) -> list[float]:
-    """`start` moved by a POSE_OFFSETS entry, which runs along the source counter (its local x, and y at half)."""
+def _footprint_half(twin: dict, object_id: str) -> float:
+    o = next(o for o in twin["objects"] if o["id"] == object_id)
+    return max(o["size"][0], o["size"][1]) / 2
+
+
+def _offset_start(src: dict, start, off, half: float | None = None) -> list[float]:
+    """`start` moved by a POSE_OFFSETS entry, which runs along the source counter (its local x, and y at half).
+    With `half` (the object's footprint half-width) the move stops EDGE_GAP short of the counter's edge, so the
+    object never stands half off the top (unload_dishwasher sets it down there); a start the twin already put
+    closer to the edge is not moved in."""
+    dx, dy = off[0], off[1] * 0.5
+    if half is not None:
+        local = to_local(start, src)
+
+        def clamp(l0, d, size):
+            lim = max(size / 2 - half - EDGE_GAP, abs(l0))
+            return d if abs(l0 + d) <= lim else math.copysign(lim, l0 + d) - l0
+
+        dx, dy = clamp(local[0], dx, src["size"][0]), clamp(local[1], dy, src["size"][1])
     co, si = math.cos(src.get("yaw", 0.0)), math.sin(src.get("yaw", 0.0))
-    return [start[0] + co * off[0] - si * off[1] * 0.5, start[1] + si * off[0] + co * off[1] * 0.5]
+    return [start[0] + co * dx - si * dy, start[1] + si * dx + co * dy]
 
 
 def _start_variants(twin: dict, v: dict) -> list:
     """The object's xy for every offset make_tasks may apply (train and held-out); [None] for tasks without one."""
     if "start" not in v:
         return [None]
-    src = _fx(twin, v["source"])
-    return [_offset_start(src, v["start"], off) for off in POSE_OFFSETS]
+    src, half = _fx(twin, v["source"]), _footprint_half(twin, v["object_id"])
+    return [_offset_start(src, v["start"], off, half) for off in POSE_OFFSETS]
 
 
 def make_tasks(twin: dict, families: list[str], n: int, seed: int = 0, people: int = 0, holdout: bool = False,
@@ -191,7 +209,8 @@ def make_tasks(twin: dict, families: list[str], n: int, seed: int = 0, people: i
                 if o["catalog_id"] != "mug":
                     continue
                 src = _holder(o, cabinets)
-                if src is None or abs(to_local(o["position"], src)[0] - drawer_x(src, twin["fixtures"])) > 0.6:
+                if src is None or not has_drawers(src, twin["fixtures"]) or (
+                        abs(to_local(o["position"], src)[0] - drawer_x(src, twin["fixtures"])) > 0.6):
                     continue  # the base parks beside the open drawer, so the mug must be within reach of that spot
                 pool.append({"object_id": o["id"], "object_label": o["label"], "source": src["id"], "fixture": src["id"],
                              "start": list(o["position"])})
@@ -204,7 +223,9 @@ def make_tasks(twin: dict, families: list[str], n: int, seed: int = 0, people: i
                     pool.append({"object_id": o["id"], "object_label": o["label"], "source": src["id"],
                                  "fixture": src["id"], "start": list(o["position"])})
         elif fam in ("open_drawer", "open_door", "close_drawer", "close_door"):
-            pool = [{"fixture": c["id"], "name": c["id"].replace("_", " ")} for c in cabinets]
+            has = has_door if fam.endswith("_door") else has_drawers  # a narrow cabinet is one door, no drawers
+            pool = [{"fixture": c["id"], "name": c["id"].replace("_", " ")} for c in cabinets
+                    if has(c, twin["fixtures"])]
         elif fam == "move_on_table":
             for c in (c for c in counters if is_table(c)):
                 for o in twin["objects"]:
@@ -287,7 +308,8 @@ def make_tasks(twin: dict, families: list[str], n: int, seed: int = 0, people: i
         if "start" in v:
             off = rng.choice([o for o in POSE_OFFSETS if (list(o) == HOLDOUT_OFFSET) == holdout])
             src = _fx(twin, v["source"])
-            t["start"] = [*_offset_start(src, v["start"], off), top_z(src) + 0.06]  # offsets run along the counter
+            t["start"] = [*_offset_start(src, v["start"], off, _footprint_half(twin, v["object_id"])),
+                          top_z(src) + 0.06]  # offsets run along the counter
         t["task_id"] = f"sim_{fam}_{i:04d}"
         tasks.append(t)
     return tasks

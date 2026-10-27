@@ -55,6 +55,8 @@ def delete_job(out_dir: Path, job_id: str, dry_run: bool = False) -> dict | None
     if status.get("status") not in FINISHED:
         raise JobBusy(f"{job_id} is {status.get('status')}; cancel it first")
     paths = job_paths(out, job_id, status)
+    if not paths:
+        return None
     freed = sum(_size(p) for p in paths)
     if not dry_run:
         # A file that cannot be removed (held open on Windows, no permission) raises OSError. status.json goes last so

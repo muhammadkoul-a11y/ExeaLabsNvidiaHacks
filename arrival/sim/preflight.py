@@ -13,7 +13,7 @@ import math
 
 import numpy as np
 
-from arrival.sim.scene import DRAWER_W, door_w, drawer_x, front_stand
+from arrival.sim.scene import DRAWER_W, door_hinge_x, door_w, drawer_x, front_stand
 from arrival.twin.compile import is_counter_host, to_local, to_world
 
 BASE_CLEAR = 0.15  # the base column is 0.12 m in radius
@@ -230,12 +230,12 @@ def _segment_distance(p, a, b) -> float:
 def _close_door_gaps(twin: dict, c: dict) -> tuple[float, float]:
     """Distances from a cabinet door's hinge edge and from its handle, at the angle close_door starts from, to the
     nearest wall face square to the run (within 5 deg; a skewed wall leaves a different gap). The offsets are
-    counter_xml's: the hinge 2 cm in from the run's +x end and 1 cm behind the top's edge, the handle 6 cm in from the
-    free edge and 5 cm out from the panel, the door turning clockwise from above."""
+    counter_xml's: the hinge on the door's right edge (door_hinge_x) and 1 cm behind the top's edge, the
+    handle 6 cm in from the free edge and 5 cm out from the panel, the door turning clockwise from above."""
     from arrival.sim.collect import DOOR_OPEN
 
     r, a = door_w(c, twin["fixtures"]) - 0.06, DOOR_OPEN
-    hx = c["size"][0] / 2 - 0.02 - r * math.cos(a) + 0.05 * math.sin(a)
+    hx = door_hinge_x(c, twin["fixtures"]) - r * math.cos(a) + 0.05 * math.sin(a)
     hy = c["size"][1] / 2 - 0.01 + r * math.sin(a) + 0.05 * math.cos(a)
     n = front(c)
 
@@ -246,7 +246,8 @@ def _close_door_gaps(twin: dict, c: dict) -> tuple[float, float]:
     walls = [w for w in twin.get("walls") or [] if square(w)]
     return tuple(min((_segment_distance(p, w["start"], w["end"]) - w.get("thickness", 0.0) / 2 for w in walls),
                      default=math.inf)
-                 for p in (to_world((c["size"][0] / 2, c["size"][1] / 2), c), to_world((hx, hy), c)))
+                 for p in (to_world((door_hinge_x(c, twin["fixtures"]) + 0.02, c["size"][1] / 2), c),
+                           to_world((hx, hy), c)))
 
 
 def _footprint_distance(xy, f: dict) -> float:
@@ -257,10 +258,10 @@ def _footprint_distance(xy, f: dict) -> float:
 def _door_wall_gaps(twin: dict, c: dict, a: float) -> tuple[float, float]:
     """Distances from a cabinet run's hinge end and from its door handle with the door at angle `a`, to the nearest
     wall face square to the run (within 5 deg; a skewed wall leaves a different gap). The offsets are counter_xml's:
-    the hinge 2 cm in from the run's +x end and 1 cm behind the top's edge, the handle 6 cm in from the free edge and
-    5 cm out from the panel, the door turning clockwise from above."""
+    the hinge on the door's right edge (door_hinge_x) and 1 cm behind the top's edge, the handle 6 cm in
+    from the free edge and 5 cm out from the panel, the door turning clockwise from above."""
     r = door_w(c, twin["fixtures"]) - 0.06
-    hx = c["size"][0] / 2 - 0.02 - r * math.cos(a) + 0.05 * math.sin(a)
+    hx = door_hinge_x(c, twin["fixtures"]) - r * math.cos(a) + 0.05 * math.sin(a)
     hy = c["size"][1] / 2 - 0.01 + r * math.sin(a) + 0.05 * math.cos(a)
     n = front(c)
 
@@ -271,7 +272,8 @@ def _door_wall_gaps(twin: dict, c: dict, a: float) -> tuple[float, float]:
     walls = [w for w in twin.get("walls") or [] if square(w)]
     return tuple(min((_segment_distance(p, w["start"], w["end"]) - w.get("thickness", 0.0) / 2 for w in walls),
                      default=math.inf)
-                 for p in (to_world((c["size"][0] / 2, c["size"][1] / 2), c), to_world((hx, hy), c)))
+                 for p in (to_world((door_hinge_x(c, twin["fixtures"]) + 0.02, c["size"][1] / 2), c),
+                           to_world((hx, hy), c)))
 
 
 def open_parts(twin: dict, task: dict) -> list[tuple[str, dict, tuple[float, float, float, float]]]:

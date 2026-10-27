@@ -83,7 +83,7 @@ class Limits:
             if name in ("max_job_seconds", "retention_hours"):
                 kw[name] = num
             else:
-                if name in ("max_episodes", "max_people", "max_queue", "job_retries") and not num.is_integer():
+                if name in ("max_episodes", "max_people", "max_queue", "job_retries", "job_retry_backoff") and not num.is_integer():
                     raise LimitError(f"{var}={raw!r} must be a whole number")
                 scaled = num * scale
                 if num > 0 and scaled < 1:

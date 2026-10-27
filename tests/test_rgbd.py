@@ -107,7 +107,10 @@ def test_frame_symlink_cannot_escape_bundle(tmp_path):
     outside = tmp_path / "outside.png"
     outside.write_bytes((root / "rgb" / "f000.png").read_bytes())
     (root / "rgb" / "f000.png").unlink()
-    (root / "rgb" / "f000.png").symlink_to(outside)
+    try:
+        (root / "rgb" / "f000.png").symlink_to(outside)
+    except OSError as e:  # Windows without Developer Mode or admin rights: WinError 1314, no symlink to test
+        pytest.skip(f"this machine cannot create symlinks ({e.__class__.__name__}: {e.strerror or e})")
     with pytest.raises(rgbd.ManifestError) as e:
         rgbd.load_manifest(root)
     assert e.value.code == "bad_path"
@@ -124,3 +127,27 @@ def test_explicit_split_lists_must_match_every_frame(tmp_path, splits):
     with pytest.raises(rgbd.ManifestError) as e:
         rgbd.load_manifest(root)
     assert e.value.code == "split"
+
+
+@pytest.mark.parametrize(("field", "code"), [
+    ("timestamp", "timestamp"), ("fx", "intrinsics"), ("fy", "intrinsics"),
+    ("cx", "intrinsics"), ("world", "bad_matrix"), ("pose", "bad_matrix"),
+])
+def test_oversized_numbers_raise_manifest_error(tmp_path, field, code):
+    root = rgbd.write_synthetic_bundle(tmp_path)
+
+    def mutate(manifest):
+        frame = manifest["frames"][0]
+        if field == "timestamp":
+            frame[field] = 10 ** 400
+        elif field == "world":
+            manifest["arkit_world_to_room"][0] = 10 ** 400
+        elif field == "pose":
+            frame["camera_to_room"][0] = 10 ** 400
+        else:
+            frame["intrinsics"][field] = 10 ** 400
+
+    _edit(root, mutate)
+    with pytest.raises(rgbd.ManifestError) as error:
+        rgbd.load_manifest(root)
+    assert error.value.code == code

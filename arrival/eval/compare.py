@@ -28,10 +28,17 @@ def load_rows(run: str | Path) -> list[dict]:
     if not rows:
         raise CompareError(f"{path} has no trials")
     need = ("manifest_id", "checkpoint_id", "trial_index", "task_id", "family", "success")
+    seen_trials = set()
     for i, r in enumerate(rows):
         missing = [k for k in need if not isinstance(r, dict) or k not in r]
         if missing:  # a LeRobot dataset's meta/episodes.jsonl has the same name
             raise CompareError(f"{path} is not an eval run's episodes.jsonl (row {i} has no {', '.join(missing)})")
+        index = r["trial_index"]
+        if type(index) is not int or index < 0:
+            raise CompareError(f"{path}: row {i} trial_index must be a nonnegative integer")
+        if index in seen_trials:
+            raise CompareError(f"{path}: duplicate trial_index {index}")
+        seen_trials.add(index)
     if len({r.get("manifest_id") for r in rows}) != 1:
         raise CompareError(f"{path} mixes manifests")
     return sorted(rows, key=lambda r: r["trial_index"])

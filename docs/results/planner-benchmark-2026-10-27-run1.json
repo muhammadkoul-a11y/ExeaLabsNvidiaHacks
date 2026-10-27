@@ -1,0 +1,4388 @@
+{
+  "version": 2,
+  "run_at": "2026-10-27T17:09:40+00:00",
+  "planner_model": "nvidia/nemotron-3-super-120b-a12b",
+  "wording_model": "nvidia/Nemotron-3_5-Lightning",
+  "objects": [
+    "mug_1",
+    "bowl_1",
+    "sponge_1"
+  ],
+  "fixtures": [
+    "counter_a",
+    "sink_1",
+    "counter_b",
+    "fridge_1",
+    "stove_1"
+  ],
+  "inventories": {
+    "hero_kitchen": {
+      "objects": [
+        "mug_1",
+        "bowl_1",
+        "sponge_1"
+      ],
+      "fixtures": [
+        "counter_a",
+        "sink_1",
+        "counter_b",
+        "fridge_1",
+        "stove_1"
+      ],
+      "source": "hard-coded in this script (as v1)"
+    },
+    "kitchen_real_01": {
+      "objects": [
+        "mug_1",
+        "bowl_1",
+        "plate_1",
+        "cup_1",
+        "apple_1"
+      ],
+      "fixtures": [
+        "11793D80-8BE3-45F9-AF2F-34068D45F7C2",
+        "F8CDA831-6DB6-48C1-9482-A5DA79652AEC",
+        "807FD3A5-AF23-4620-A58F-D4FDD13850A3",
+        "F068E3AE-575B-49A0-BD35-8E233153BE91",
+        "CC64C90B-5AD3-4C42-8E56-3D8B4FE9C9B9",
+        "F9337652-45E5-419A-B727-FE171FB57F90"
+      ],
+      "fixture_types": {
+        "11793D80-8BE3-45F9-AF2F-34068D45F7C2": "hinge_cabinet",
+        "F8CDA831-6DB6-48C1-9482-A5DA79652AEC": "dishwasher",
+        "807FD3A5-AF23-4620-A58F-D4FDD13850A3": "stove",
+        "F068E3AE-575B-49A0-BD35-8E233153BE91": "fridge_bottom_freezer",
+        "CC64C90B-5AD3-4C42-8E56-3D8B4FE9C9B9": "hinge_cabinet",
+        "F9337652-45E5-419A-B727-FE171FB57F90": "hinge_cabinet"
+      },
+      "source": "tests/fixtures/roomplan/kitchen_real_01.json, built as `arrival demo --from-roomplan` builds it (seed 0)"
+    },
+    "office": {
+      "objects": [
+        "laptop_1",
+        "book_1",
+        "cup_1"
+      ],
+      "fixtures": [
+        "TABLE-01",
+        "CHAIR-01",
+        "CHAIR-02",
+        "STORAGE-01"
+      ],
+      "fixture_types": {
+        "TABLE-01": "counter",
+        "CHAIR-01": "box",
+        "CHAIR-02": "box",
+        "STORAGE-01": "hinge_cabinet"
+      },
+      "source": "tests/fixtures/roomplan/office.json, built as `arrival demo --from-roomplan` builds it (seed 0)"
+    }
+  },
+  "planner_system_prompt": "Return only JSON: {\"family\": one of counter_to_sink|counter_to_counter|open_drawer|open_door|close_drawer|close_door|put_in_drawer|wipe_counter|open_fridge, \"object\": id|null, \"target\": id|null}",
+  "planner_params": {
+    "model": "nvidia/nemotron-3-super-120b-a12b",
+    "temperature": 0,
+    "base_url": "https://api.tokenfactory.nebius.com/v1"
+  },
+  "live_calls": {
+    "planner": 109,
+    "wordings": 9
+  },
+  "sets": {
+    "generated": "wordings Nemotron Lightning wrote for the 9 families the planner prompt lists; hero kitchen",
+    "indirect": "written by us, naming the goal rather than the action; hero kitchen",
+    "blind": "from planner-blind-requests.json, written by people who had not seen the planner prompt but were given all 15 sim families in plain words; scored over all rows, and under listed_families over the rows asking for one of the 9 families the prompt lists. A language test: rows the sim could not run are kept and counted in sim_not_executable (rows[].sim_executable)",
+    "out_of_scope": "written by us; no family fits, so there is no right answer: the confusion counts under out_of_scope are what each planner picked",
+    "unlisted_families": "written by us for open_oven, open_dishwasher, load_dishwasher, unload_dishwasher, turn_on_faucet and move_on_table, which the planner prompt does not list: expected to fail by construction, and the keyword parser cannot return these families at all. Each runs in the room whose twin has the fixture its sim task needs (rows[].inventory): oven and dishwasher in kitchen_real_01, faucet in hero_kitchen, table in office"
+  },
+  "summary": {
+    "generated": {
+      "n": 54,
+      "nemotron_right": 50,
+      "rule_right": 50,
+      "nemotron_live_calls": 52,
+      "live_calls": 54,
+      "rejected": {
+        "k": 2,
+        "n": 54,
+        "rate": 0.037,
+        "wilson_95": [
+          0.0102,
+          0.1254
+        ]
+      },
+      "reject_reasons": {
+        "unknown_family": 1,
+        "object_or_target_not_in_inventory": 1
+      },
+      "call_errors": {},
+      "family": {
+        "nemotron": {
+          "k": 48,
+          "n": 54,
+          "rate": 0.8889,
+          "wilson_95": [
+            0.7781,
+            0.9481
+          ]
+        },
+        "rule": {
+          "k": 50,
+          "n": 54,
+          "rate": 0.9259,
+          "wilson_95": [
+            0.8245,
+            0.9708
+          ]
+        }
+      },
+      "object": {
+        "nemotron": {
+          "k": 17,
+          "n": 18,
+          "rate": 0.9444,
+          "wilson_95": [
+            0.7424,
+            0.9901
+          ]
+        },
+        "rule": {
+          "k": 15,
+          "n": 18,
+          "rate": 0.8333,
+          "wilson_95": [
+            0.6078,
+            0.9416
+          ]
+        }
+      },
+      "right": {
+        "nemotron": {
+          "k": 48,
+          "n": 54,
+          "rate": 0.8889,
+          "wilson_95": [
+            0.7781,
+            0.9481
+          ]
+        },
+        "rule": {
+          "k": 50,
+          "n": 54,
+          "rate": 0.9259,
+          "wilson_95": [
+            0.8245,
+            0.9708
+          ]
+        }
+      },
+      "confusion": {
+        "nemotron": {
+          "counter_to_sink": {
+            "rejected": 1,
+            "counter_to_sink": 5
+          },
+          "counter_to_counter": {
+            "counter_to_counter": 6
+          },
+          "put_in_drawer": {
+            "put_in_drawer": 6
+          },
+          "open_drawer": {
+            "open_drawer": 5,
+            "rejected": 1
+          },
+          "close_drawer": {
+            "close_drawer": 6
+          },
+          "open_door": {
+            "open_door": 6
+          },
+          "close_door": {
+            "close_door": 6
+          },
+          "wipe_counter": {
+            "wipe_counter": 6
+          },
+          "open_fridge": {
+            "open_door": 4,
+            "open_fridge": 2
+          }
+        },
+        "rule": {
+          "counter_to_sink": {
+            "counter_to_sink": 6
+          },
+          "counter_to_counter": {
+            "counter_to_counter": 6
+          },
+          "put_in_drawer": {
+            "put_in_drawer": 3,
+            "open_drawer": 3
+          },
+          "open_drawer": {
+            "open_drawer": 6
+          },
+          "close_drawer": {
+            "close_drawer": 6
+          },
+          "open_door": {
+            "open_door": 6
+          },
+          "close_door": {
+            "close_door": 6
+          },
+          "wipe_counter": {
+            "wipe_counter": 5,
+            "counter_to_counter": 1
+          },
+          "open_fridge": {
+            "open_fridge": 6
+          }
+        }
+      },
+      "median_seconds": 2.345,
+      "sim_not_executable": 6
+    },
+    "indirect": {
+      "n": 15,
+      "nemotron_right": 14,
+      "rule_right": 6,
+      "nemotron_live_calls": 13,
+      "live_calls": 15,
+      "rejected": {
+        "k": 2,
+        "n": 15,
+        "rate": 0.1333,
+        "wilson_95": [
+          0.0374,
+          0.3788
+        ]
+      },
+      "reject_reasons": {
+        "unknown_family": 1,
+        "object_or_target_not_in_inventory": 1
+      },
+      "call_errors": {},
+      "family": {
+        "nemotron": {
+          "k": 13,
+          "n": 15,
+          "rate": 0.8667,
+          "wilson_95": [
+            0.6212,
+            0.9626
+          ]
+        },
+        "rule": {
+          "k": 6,
+          "n": 15,
+          "rate": 0.4,
+          "wilson_95": [
+            0.1982,
+            0.6425
+          ]
+        }
+      },
+      "object": {
+        "nemotron": {
+          "k": 6,
+          "n": 6,
+          "rate": 1.0,
+          "wilson_95": [
+            0.6097,
+            1.0
+          ]
+        },
+        "rule": {
+          "k": 6,
+          "n": 6,
+          "rate": 1.0,
+          "wilson_95": [
+            0.6097,
+            1.0
+          ]
+        }
+      },
+      "right": {
+        "nemotron": {
+          "k": 13,
+          "n": 15,
+          "rate": 0.8667,
+          "wilson_95": [
+            0.6212,
+            0.9626
+          ]
+        },
+        "rule": {
+          "k": 6,
+          "n": 15,
+          "rate": 0.4,
+          "wilson_95": [
+            0.1982,
+            0.6425
+          ]
+        }
+      },
+      "confusion": {
+        "nemotron": {
+          "counter_to_sink": {
+            "counter_to_sink": 2
+          },
+          "counter_to_counter": {
+            "counter_to_counter": 2
+          },
+          "put_in_drawer": {
+            "put_in_drawer": 2
+          },
+          "open_drawer": {
+            "open_drawer": 1
+          },
+          "close_drawer": {
+            "close_drawer": 2
+          },
+          "open_door": {
+            "rejected": 1
+          },
+          "close_door": {
+            "close_door": 1
+          },
+          "wipe_counter": {
+            "rejected": 1,
+            "wipe_counter": 1
+          },
+          "open_fridge": {
+            "open_fridge": 2
+          }
+        },
+        "rule": {
+          "counter_to_sink": {
+            "counter_to_counter": 2
+          },
+          "counter_to_counter": {
+            "counter_to_counter": 2
+          },
+          "put_in_drawer": {
+            "put_in_drawer": 1,
+            "counter_to_counter": 1
+          },
+          "open_drawer": {
+            "counter_to_counter": 1
+          },
+          "close_drawer": {
+            "open_drawer": 1,
+            "close_drawer": 1
+          },
+          "open_door": {
+            "counter_to_counter": 1
+          },
+          "close_door": {
+            "counter_to_counter": 1
+          },
+          "wipe_counter": {
+            "wipe_counter": 1,
+            "counter_to_counter": 1
+          },
+          "open_fridge": {
+            "open_fridge": 1,
+            "counter_to_counter": 1
+          }
+        }
+      },
+      "median_seconds": 3.199,
+      "sim_not_executable": 2
+    },
+    "out_of_scope": {
+      "n": 20,
+      "nemotron_right": null,
+      "rule_right": null,
+      "nemotron_live_calls": 16,
+      "live_calls": 20,
+      "rejected": {
+        "k": 4,
+        "n": 20,
+        "rate": 0.2,
+        "wilson_95": [
+          0.0807,
+          0.416
+        ]
+      },
+      "reject_reasons": {
+        "unknown_family": 4
+      },
+      "call_errors": {},
+      "family": null,
+      "object": null,
+      "right": null,
+      "confusion": {
+        "nemotron": {
+          "out_of_scope": {
+            "rejected": 4,
+            "counter_to_counter": 2,
+            "put_in_drawer": 4,
+            "open_fridge": 6,
+            "wipe_counter": 2,
+            "counter_to_sink": 2
+          }
+        },
+        "rule": {
+          "out_of_scope": {
+            "counter_to_counter": 20
+          }
+        }
+      },
+      "median_seconds": 2.981,
+      "sim_not_executable": 0
+    },
+    "unlisted_families": {
+      "n": 20,
+      "nemotron_right": 0,
+      "rule_right": 0,
+      "nemotron_live_calls": 19,
+      "live_calls": 20,
+      "rejected": {
+        "k": 1,
+        "n": 20,
+        "rate": 0.05,
+        "wilson_95": [
+          0.0089,
+          0.2361
+        ]
+      },
+      "reject_reasons": {
+        "unknown_family": 1
+      },
+      "call_errors": {},
+      "family": {
+        "nemotron": {
+          "k": 0,
+          "n": 20,
+          "rate": 0.0,
+          "wilson_95": [
+            0.0,
+            0.1611
+          ]
+        },
+        "rule": {
+          "k": 0,
+          "n": 20,
+          "rate": 0.0,
+          "wilson_95": [
+            0.0,
+            0.1611
+          ]
+        }
+      },
+      "object": {
+        "nemotron": {
+          "k": 8,
+          "n": 11,
+          "rate": 0.7273,
+          "wilson_95": [
+            0.4343,
+            0.9025
+          ]
+        },
+        "rule": {
+          "k": 11,
+          "n": 11,
+          "rate": 1.0,
+          "wilson_95": [
+            0.7412,
+            1.0
+          ]
+        }
+      },
+      "right": {
+        "nemotron": {
+          "k": 0,
+          "n": 20,
+          "rate": 0.0,
+          "wilson_95": [
+            0.0,
+            0.1611
+          ]
+        },
+        "rule": {
+          "k": 0,
+          "n": 20,
+          "rate": 0.0,
+          "wilson_95": [
+            0.0,
+            0.1611
+          ]
+        }
+      },
+      "confusion": {
+        "nemotron": {
+          "open_oven": {
+            "open_door": 3
+          },
+          "open_dishwasher": {
+            "open_door": 3
+          },
+          "load_dishwasher": {
+            "put_in_drawer": 4
+          },
+          "unload_dishwasher": {
+            "open_door": 2,
+            "counter_to_counter": 1,
+            "open_drawer": 1
+          },
+          "turn_on_faucet": {
+            "rejected": 1,
+            "counter_to_sink": 2
+          },
+          "move_on_table": {
+            "counter_to_counter": 3
+          }
+        },
+        "rule": {
+          "open_oven": {
+            "counter_to_counter": 2,
+            "open_door": 1
+          },
+          "open_dishwasher": {
+            "counter_to_counter": 2,
+            "open_door": 1
+          },
+          "load_dishwasher": {
+            "counter_to_counter": 4
+          },
+          "unload_dishwasher": {
+            "wipe_counter": 1,
+            "counter_to_counter": 3
+          },
+          "turn_on_faucet": {
+            "counter_to_counter": 2,
+            "counter_to_sink": 1
+          },
+          "move_on_table": {
+            "counter_to_counter": 3
+          }
+        }
+      },
+      "median_seconds": 3.438,
+      "sim_not_executable": 0
+    }
+  },
+  "median_seconds": 2.704,
+  "note": "The indirect, out_of_scope and unlisted_families sets are written by us, not sampled from users. A reply _parse_plan rejected falls back to the rule parser: the v1 fields (nemotron_ok, nemotron_right) count it under nemotron with source rule_based, every v2 rate (family, object, right) counts it as wrong. Rates carry Wilson 95% intervals (arrival.eval.harness).",
+  "rows": [
+    {
+      "set": "generated",
+      "instruction": "Pick the mug up from the counter and place it in the sink.",
+      "family": "counter_to_sink",
+      "object": "mug_1",
+      "nemotron": {
+        "family": "counter_to_sink",
+        "object": "mug_1",
+        "target": "sink_1"
+      },
+      "nemotron_source": "rule_based",
+      "nemotron_ok": true,
+      "nemotron_seconds": 6.295,
+      "rule": {
+        "family": "counter_to_sink",
+        "object": "mug_1",
+        "target": "sink_1"
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"none\",\"object\":null,\"target\":null}",
+      "reply_accepted": false,
+      "reject_reason": "ValueError: plan has no known family: {'family': 'none', 'object': None, 'target': None}",
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": false,
+      "nemotron_object_ok": false,
+      "nemotron_plan_ok": false,
+      "rule_family_ok": true,
+      "rule_object_ok": true,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Move the mug from the counter to the sink.",
+      "family": "counter_to_sink",
+      "object": "mug_1",
+      "nemotron": {
+        "family": "counter_to_sink",
+        "object": "mug_1",
+        "target": "sink_1"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.069,
+      "rule": {
+        "family": "counter_to_sink",
+        "object": "mug_1",
+        "target": "sink_1"
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\n  \"family\": \"counter_to_sink\",\n  \"object\": \"mug_1\",\n  \"target\": \"sink_1\"\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": true,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": true,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Take the mug off the counter and put it in the sink.",
+      "family": "counter_to_sink",
+      "object": "mug_1",
+      "nemotron": {
+        "family": "counter_to_sink",
+        "object": "mug_1",
+        "target": "sink_1"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.084,
+      "rule": {
+        "family": "counter_to_sink",
+        "object": "mug_1",
+        "target": "sink_1"
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\n  \"family\": \"counter_to_sink\",\n  \"object\": \"mug_1\",\n  \"target\": \"sink_1\"\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": true,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": true,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Carry the mug to the sink from the counter.",
+      "family": "counter_to_sink",
+      "object": "mug_1",
+      "nemotron": {
+        "family": "counter_to_sink",
+        "object": "mug_1",
+        "target": "sink_1"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.095,
+      "rule": {
+        "family": "counter_to_sink",
+        "object": "mug_1",
+        "target": "sink_1"
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\n  \"family\": \"counter_to_sink\",\n  \"object\": \"mug_1\",\n  \"target\": \"sink_1\"\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": true,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": true,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Set the mug in the sink after lifting it from the counter.",
+      "family": "counter_to_sink",
+      "object": "mug_1",
+      "nemotron": {
+        "family": "counter_to_sink",
+        "object": "mug_1",
+        "target": "sink_1"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.394,
+      "rule": {
+        "family": "counter_to_sink",
+        "object": "mug_1",
+        "target": "sink_1"
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"counter_to_sink\",\"object\":\"mug_1\",\"target\":\"sink_1\"}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": true,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": true,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Transfer the mug from the counter into the sink.",
+      "family": "counter_to_sink",
+      "object": "mug_1",
+      "nemotron": {
+        "family": "counter_to_sink",
+        "object": "mug_1",
+        "target": "sink_1"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 1.367,
+      "rule": {
+        "family": "counter_to_sink",
+        "object": "mug_1",
+        "target": "sink_1"
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"counter_to_sink\",\"object\":\"mug_1\",\"target\":\"sink_1\"}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": true,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": true,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Pick up the bowl from the counter and place it on the other counter.",
+      "family": "counter_to_counter",
+      "object": "bowl_1",
+      "nemotron": {
+        "family": "counter_to_counter",
+        "object": "bowl_1",
+        "target": "counter_b"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.688,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": "bowl_1",
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"counter_to_counter\",\"object\":\"bowl_1\",\"target\":\"counter_b\"}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": true,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": true,
+      "rule_plan_ok": true,
+      "sim_executable": false
+    },
+    {
+      "set": "generated",
+      "instruction": "Move the bowl from this counter to the adjacent counter.",
+      "family": "counter_to_counter",
+      "object": "bowl_1",
+      "nemotron": {
+        "family": "counter_to_counter",
+        "object": "bowl_1",
+        "target": "counter_b"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 5.158,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": "bowl_1",
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\n  \"family\": \"counter_to_counter\",\n  \"object\": \"bowl_1\",\n  \"target\": \"counter_b\"\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": true,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": true,
+      "rule_plan_ok": true,
+      "sim_executable": false
+    },
+    {
+      "set": "generated",
+      "instruction": "Carry the bowl across to the other counter and set it down.",
+      "family": "counter_to_counter",
+      "object": "bowl_1",
+      "nemotron": {
+        "family": "counter_to_counter",
+        "object": "bowl_1",
+        "target": "counter_b"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.774,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": "bowl_1",
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\n  \"family\": \"counter_to_counter\",\n  \"object\": \"bowl_1\",\n  \"target\": \"counter_b\"\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": true,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": true,
+      "rule_plan_ok": true,
+      "sim_executable": false
+    },
+    {
+      "set": "generated",
+      "instruction": "Transfer the bowl from the countertop to the opposite counter.",
+      "family": "counter_to_counter",
+      "object": "bowl_1",
+      "nemotron": {
+        "family": "counter_to_counter",
+        "object": "bowl_1",
+        "target": "counter_b"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.618,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": "bowl_1",
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"counter_to_counter\",\"object\":\"bowl_1\",\"target\":\"counter_b\"}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": true,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": true,
+      "rule_plan_ok": true,
+      "sim_executable": false
+    },
+    {
+      "set": "generated",
+      "instruction": "Take the bowl from the counter and relocate it to the other side.",
+      "family": "counter_to_counter",
+      "object": "bowl_1",
+      "nemotron": {
+        "family": "counter_to_counter",
+        "object": "bowl_1",
+        "target": "counter_b"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 3.45,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": "bowl_1",
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\n  \"family\": \"counter_to_counter\",\n  \"object\": \"bowl_1\",\n  \"target\": \"counter_b\"\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": true,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": true,
+      "rule_plan_ok": true,
+      "sim_executable": false
+    },
+    {
+      "set": "generated",
+      "instruction": "Shift the bowl from one counter to the other.",
+      "family": "counter_to_counter",
+      "object": "bowl_1",
+      "nemotron": {
+        "family": "counter_to_counter",
+        "object": "bowl_1",
+        "target": "counter_b"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.338,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": "bowl_1",
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"counter_to_counter\",\"object\":\"bowl_1\",\"target\":\"counter_b\"}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": true,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": true,
+      "rule_plan_ok": true,
+      "sim_executable": false
+    },
+    {
+      "set": "generated",
+      "instruction": "Put the mug in the drawer",
+      "family": "put_in_drawer",
+      "object": "mug_1",
+      "nemotron": {
+        "family": "put_in_drawer",
+        "object": "mug_1",
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.548,
+      "rule": {
+        "family": "put_in_drawer",
+        "object": "mug_1",
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"put_in_drawer\",\"object\":\"mug_1\",\"target\":null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": true,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": true,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Place the mug inside the drawer",
+      "family": "put_in_drawer",
+      "object": "mug_1",
+      "nemotron": {
+        "family": "put_in_drawer",
+        "object": "mug_1",
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 1.914,
+      "rule": {
+        "family": "put_in_drawer",
+        "object": "mug_1",
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\n  \"family\": \"put_in_drawer\",\n  \"object\": \"mug_1\",\n  \"target\": null\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": true,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": true,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Store the mug in the drawer",
+      "family": "put_in_drawer",
+      "object": "mug_1",
+      "nemotron": {
+        "family": "put_in_drawer",
+        "object": "mug_1",
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.927,
+      "rule": {
+        "family": "open_drawer",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": false,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\n  \"family\": \"put_in_drawer\",\n  \"object\": \"mug_1\",\n  \"target\": null\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": true,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": false,
+      "rule_object_ok": false,
+      "rule_plan_ok": false,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Slide the mug into the drawer",
+      "family": "put_in_drawer",
+      "object": "mug_1",
+      "nemotron": {
+        "family": "put_in_drawer",
+        "object": "mug_1",
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 3.117,
+      "rule": {
+        "family": "open_drawer",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": false,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"put_in_drawer\",\"object\":\"mug_1\",\"target\":null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": true,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": false,
+      "rule_object_ok": false,
+      "rule_plan_ok": false,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Put the mug away in the drawer",
+      "family": "put_in_drawer",
+      "object": "mug_1",
+      "nemotron": {
+        "family": "put_in_drawer",
+        "object": "mug_1",
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 3.144,
+      "rule": {
+        "family": "put_in_drawer",
+        "object": "mug_1",
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\n  \"family\": \"put_in_drawer\",\n  \"object\": \"mug_1\",\n  \"target\": null\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": true,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": true,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Tuck the mug into the drawer",
+      "family": "put_in_drawer",
+      "object": "mug_1",
+      "nemotron": {
+        "family": "put_in_drawer",
+        "object": "mug_1",
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.585,
+      "rule": {
+        "family": "open_drawer",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": false,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\n  \"family\": \"put_in_drawer\",\n  \"object\": \"mug_1\",\n  \"target\": null\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": true,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": false,
+      "rule_object_ok": false,
+      "rule_plan_ok": false,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Open the drawer.",
+      "family": "open_drawer",
+      "object": null,
+      "nemotron": {
+        "family": "open_drawer",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.057,
+      "rule": {
+        "family": "open_drawer",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"open_drawer\",\"object\":null,\"target\":null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": null,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Please open the kitchen drawer.",
+      "family": "open_drawer",
+      "object": null,
+      "nemotron": {
+        "family": "open_drawer",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 1.871,
+      "rule": {
+        "family": "open_drawer",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"open_drawer\",\"object\":null,\"target\":null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": null,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Slide the drawer open.",
+      "family": "open_drawer",
+      "object": null,
+      "nemotron": {
+        "family": "open_drawer",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.244,
+      "rule": {
+        "family": "open_drawer",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n{\n  \"family\": \"open_drawer\",\n  \"object\": null,\n  \"target\": null\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": null,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Pull the drawer to open it.",
+      "family": "open_drawer",
+      "object": null,
+      "nemotron": {
+        "family": "open_drawer",
+        "object": null,
+        "target": "counter_a"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.087,
+      "rule": {
+        "family": "open_drawer",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\n  \"family\": \"open_drawer\",\n  \"object\": \"counter_a\",\n  \"target\": null\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": null,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Open the lower kitchen drawer.",
+      "family": "open_drawer",
+      "object": null,
+      "nemotron": {
+        "family": "open_drawer",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "rule_based",
+      "nemotron_ok": true,
+      "nemotron_seconds": 3.823,
+      "rule": {
+        "family": "open_drawer",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"open_drawer\",\"object\":\"drawer_lower\",\"target\":null}",
+      "reply_accepted": false,
+      "reject_reason": "ValueError: plan object 'drawer_lower' is not in the scene",
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": false,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": false,
+      "rule_family_ok": true,
+      "rule_object_ok": null,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Unlatch and open the drawer.",
+      "family": "open_drawer",
+      "object": null,
+      "nemotron": {
+        "family": "open_drawer",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.288,
+      "rule": {
+        "family": "open_drawer",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\n  \"family\": \"open_drawer\",\n  \"object\": null,\n  \"target\": null\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": null,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Close the kitchen drawer.",
+      "family": "close_drawer",
+      "object": null,
+      "nemotron": {
+        "family": "close_drawer",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 3.123,
+      "rule": {
+        "family": "close_drawer",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"close_drawer\",\"object\":null,\"target\":null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": null,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Shut the kitchen drawer.",
+      "family": "close_drawer",
+      "object": null,
+      "nemotron": {
+        "family": "close_drawer",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.717,
+      "rule": {
+        "family": "close_drawer",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"close_drawer\",\"object\":null,\"target\":null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": null,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Please close the drawer.",
+      "family": "close_drawer",
+      "object": null,
+      "nemotron": {
+        "family": "close_drawer",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 3.12,
+      "rule": {
+        "family": "close_drawer",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\n  \"family\": \"close_drawer\",\n  \"object\": null,\n  \"target\": null\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": null,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Fasten the drawer shut.",
+      "family": "close_drawer",
+      "object": null,
+      "nemotron": {
+        "family": "close_drawer",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.352,
+      "rule": {
+        "family": "close_drawer",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\": \"close_drawer\", \"object\": null, \"target\": null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": null,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Close the drawer now.",
+      "family": "close_drawer",
+      "object": null,
+      "nemotron": {
+        "family": "close_drawer",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 1.977,
+      "rule": {
+        "family": "close_drawer",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n{\n  \"family\": \"close_drawer\",\n  \"object\": null,\n  \"target\": null\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": null,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Secure the drawer closed.",
+      "family": "close_drawer",
+      "object": null,
+      "nemotron": {
+        "family": "close_drawer",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 3.268,
+      "rule": {
+        "family": "close_drawer",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"close_drawer\",\"object\":null,\"target\":null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": null,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Grasp the cabinet handle and pull the door open.",
+      "family": "open_door",
+      "object": null,
+      "nemotron": {
+        "family": "open_door",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.144,
+      "rule": {
+        "family": "open_door",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\n  \"family\": \"open_door\",\n  \"object\": null,\n  \"target\": null\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": null,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Reach out, grip the cabinet knob, and pull the door toward you.",
+      "family": "open_door",
+      "object": null,
+      "nemotron": {
+        "family": "open_door",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.237,
+      "rule": {
+        "family": "open_door",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n{\"family\":\"open_door\",\"object\":null,\"target\":null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": null,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Locate the cabinet pull and swing the door open.",
+      "family": "open_door",
+      "object": null,
+      "nemotron": {
+        "family": "open_door",
+        "object": null,
+        "target": "fridge_1"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.178,
+      "rule": {
+        "family": "open_door",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"open_door\",\"object\":null,\"target\":\"fridge_1\"}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": null,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Firmly grip the cabinet handle and slide the door open.",
+      "family": "open_door",
+      "object": null,
+      "nemotron": {
+        "family": "open_door",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 1.414,
+      "rule": {
+        "family": "open_door",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\n  \"family\": \"open_door\",\n  \"object\": null,\n  \"target\": null\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": null,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Reach for the cabinet door and pull it open toward you.",
+      "family": "open_door",
+      "object": null,
+      "nemotron": {
+        "family": "open_door",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 1.526,
+      "rule": {
+        "family": "open_door",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n{\n  \"family\": \"open_door\",\n  \"object\": null,\n  \"target\": null\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": null,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Take hold of the cabinet handle and pull the door to open it.",
+      "family": "open_door",
+      "object": null,
+      "nemotron": {
+        "family": "open_door",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 4.104,
+      "rule": {
+        "family": "open_door",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"open_door\",\"object\":null,\"target\":null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": null,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Close the cabinet door",
+      "family": "close_door",
+      "object": null,
+      "nemotron": {
+        "family": "close_door",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.967,
+      "rule": {
+        "family": "close_door",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\n  \"family\": \"close_door\",\n  \"object\": null,\n  \"target\": null\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": null,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Please close the cabinet door",
+      "family": "close_door",
+      "object": null,
+      "nemotron": {
+        "family": "close_door",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.429,
+      "rule": {
+        "family": "close_door",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\n  \"family\": \"close_door\",\n  \"object\": null,\n  \"target\": null\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": null,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Shut the cabinet door fully",
+      "family": "close_door",
+      "object": null,
+      "nemotron": {
+        "family": "close_door",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.354,
+      "rule": {
+        "family": "close_door",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"close_door\",\"object\":null,\"target\":null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": null,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Latch the cabinet door shut",
+      "family": "close_door",
+      "object": null,
+      "nemotron": {
+        "family": "close_door",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.249,
+      "rule": {
+        "family": "close_door",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"close_door\",\"object\":null,\"target\":null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": null,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Move the cabinet door to the closed position",
+      "family": "close_door",
+      "object": null,
+      "nemotron": {
+        "family": "close_door",
+        "object": null,
+        "target": "fridge_1"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 3.321,
+      "rule": {
+        "family": "close_door",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\n  \"family\": \"close_door\",\n  \"object\": \"fridge_1\",\n  \"target\": null\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": null,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Secure the cabinet door in the closed state",
+      "family": "close_door",
+      "object": null,
+      "nemotron": {
+        "family": "close_door",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 3.039,
+      "rule": {
+        "family": "close_door",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"close_door\",\"object\":null,\"target\":null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": null,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Wipe the counter with a damp cloth.",
+      "family": "wipe_counter",
+      "object": null,
+      "nemotron": {
+        "family": "wipe_counter",
+        "object": "sponge_1",
+        "target": "counter_a"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.869,
+      "rule": {
+        "family": "wipe_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"wipe_counter\",\"object\":\"sponge_1\",\"target\":\"counter_a\"}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": null,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Clean the countertop using a sponge.",
+      "family": "wipe_counter",
+      "object": null,
+      "nemotron": {
+        "family": "wipe_counter",
+        "object": "sponge_1",
+        "target": "counter_a"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 3.307,
+      "rule": {
+        "family": "wipe_counter",
+        "object": "sponge_1",
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"wipe_counter\",\"object\":\"sponge_1\",\"target\":\"counter_a\"}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": null,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Remove debris from the counter and wipe it.",
+      "family": "wipe_counter",
+      "object": null,
+      "nemotron": {
+        "family": "wipe_counter",
+        "object": "sponge_1",
+        "target": "counter_a"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.184,
+      "rule": {
+        "family": "wipe_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\n  \"family\": \"wipe_counter\",\n  \"object\": \"sponge_1\",\n  \"target\": \"counter_a\"\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": null,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Sanitize the counter surface.",
+      "family": "wipe_counter",
+      "object": null,
+      "nemotron": {
+        "family": "wipe_counter",
+        "object": "sponge_1",
+        "target": "counter_a"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.253,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": false,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\n  \"family\": \"wipe_counter\",\n  \"object\": \"sponge_1\",\n  \"target\": \"counter_a\"\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": false,
+      "rule_object_ok": null,
+      "rule_plan_ok": false,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Wipe the counter down thoroughly.",
+      "family": "wipe_counter",
+      "object": null,
+      "nemotron": {
+        "family": "wipe_counter",
+        "object": null,
+        "target": "counter_a"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 1.49,
+      "rule": {
+        "family": "wipe_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"wipe_counter\",\"object\":\"counter_a\",\"target\":null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": null,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Clear the counter and give it a quick wipe.",
+      "family": "wipe_counter",
+      "object": null,
+      "nemotron": {
+        "family": "wipe_counter",
+        "object": "sponge_1",
+        "target": "counter_a"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.228,
+      "rule": {
+        "family": "wipe_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"wipe_counter\",\"object\":\"sponge_1\",\"target\":\"counter_a\"}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": null,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Open the fridge door",
+      "family": "open_fridge",
+      "object": null,
+      "nemotron": {
+        "family": "open_door",
+        "object": null,
+        "target": "fridge_1"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": false,
+      "nemotron_seconds": 2.099,
+      "rule": {
+        "family": "open_fridge",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"open_door\",\"object\":null,\"target\":\"fridge_1\"}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": false,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": false,
+      "rule_family_ok": true,
+      "rule_object_ok": null,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Pull the fridge door open",
+      "family": "open_fridge",
+      "object": null,
+      "nemotron": {
+        "family": "open_fridge",
+        "object": null,
+        "target": "fridge_1"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 1.583,
+      "rule": {
+        "family": "open_fridge",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"open_fridge\",\"object\":null,\"target\":\"fridge_1\"}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": null,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Grab the fridge handle and open the door",
+      "family": "open_fridge",
+      "object": null,
+      "nemotron": {
+        "family": "open_door",
+        "object": null,
+        "target": "fridge_1"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": false,
+      "nemotron_seconds": 1.416,
+      "rule": {
+        "family": "open_fridge",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"open_door\",\"object\":\"fridge_1\",\"target\":null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": false,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": false,
+      "rule_family_ok": true,
+      "rule_object_ok": null,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Swing the fridge door open",
+      "family": "open_fridge",
+      "object": null,
+      "nemotron": {
+        "family": "open_fridge",
+        "object": null,
+        "target": "fridge_1"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 1.986,
+      "rule": {
+        "family": "open_fridge",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"open_fridge\",\"object\":null,\"target\":\"fridge_1\"}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": null,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Slide the fridge door open",
+      "family": "open_fridge",
+      "object": null,
+      "nemotron": {
+        "family": "open_door",
+        "object": null,
+        "target": "fridge_1"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": false,
+      "nemotron_seconds": 1.596,
+      "rule": {
+        "family": "open_fridge",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"open_door\",\"object\":\"fridge_1\",\"target\":null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": false,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": false,
+      "rule_family_ok": true,
+      "rule_object_ok": null,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "generated",
+      "instruction": "Press the fridge panel to open the door",
+      "family": "open_fridge",
+      "object": null,
+      "nemotron": {
+        "family": "open_door",
+        "object": null,
+        "target": "fridge_1"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": false,
+      "nemotron_seconds": 2.416,
+      "rule": {
+        "family": "open_fridge",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\n  \"family\": \"open_door\",\n  \"object\": \"fridge_1\",\n  \"target\": null\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": false,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": false,
+      "rule_family_ok": true,
+      "rule_object_ok": null,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "indirect",
+      "instruction": "The mug is dirty, get it ready to be washed.",
+      "family": "counter_to_sink",
+      "object": "mug_1",
+      "nemotron": {
+        "family": "counter_to_sink",
+        "object": "mug_1",
+        "target": "sink_1"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 1.818,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": "mug_1",
+        "target": null
+      },
+      "rule_ok": false,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\n  \"family\": \"counter_to_sink\",\n  \"object\": \"mug_1\",\n  \"target\": \"sink_1\"\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": true,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": false,
+      "rule_object_ok": true,
+      "rule_plan_ok": false,
+      "sim_executable": true
+    },
+    {
+      "set": "indirect",
+      "instruction": "I left my mug out, can you deal with it so I can rinse it later?",
+      "family": "counter_to_sink",
+      "object": "mug_1",
+      "nemotron": {
+        "family": "counter_to_sink",
+        "object": "mug_1",
+        "target": "sink_1"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 3.324,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": "mug_1",
+        "target": null
+      },
+      "rule_ok": false,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"counter_to_sink\",\"object\":\"mug_1\",\"target\":\"sink_1\"}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": true,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": false,
+      "rule_object_ok": true,
+      "rule_plan_ok": false,
+      "sim_executable": true
+    },
+    {
+      "set": "indirect",
+      "instruction": "I need this counter clear for cooking; the bowl can go on the other side.",
+      "family": "counter_to_counter",
+      "object": "bowl_1",
+      "nemotron": {
+        "family": "counter_to_counter",
+        "object": "bowl_1",
+        "target": "counter_b"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 4.068,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": "bowl_1",
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\n  \"family\": \"counter_to_counter\",\n  \"object\": \"bowl_1\",\n  \"target\": \"counter_b\"\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": true,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": true,
+      "rule_plan_ok": true,
+      "sim_executable": false
+    },
+    {
+      "set": "indirect",
+      "instruction": "Make some room by shifting the bowl down the counter.",
+      "family": "counter_to_counter",
+      "object": "bowl_1",
+      "nemotron": {
+        "family": "counter_to_counter",
+        "object": "bowl_1",
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 3.593,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": "bowl_1",
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"counter_to_counter\",\"object\":\"bowl_1\",\"target\":null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": true,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": true,
+      "rule_plan_ok": true,
+      "sim_executable": false
+    },
+    {
+      "set": "indirect",
+      "instruction": "Put the mug away somewhere I won't see it, in the drawer.",
+      "family": "put_in_drawer",
+      "object": "mug_1",
+      "nemotron": {
+        "family": "put_in_drawer",
+        "object": "mug_1",
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 3.199,
+      "rule": {
+        "family": "put_in_drawer",
+        "object": "mug_1",
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"put_in_drawer\",\"object\":\"mug_1\",\"target\":null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": true,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": true,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "indirect",
+      "instruction": "Stash the mug where the cutlery lives.",
+      "family": "put_in_drawer",
+      "object": "mug_1",
+      "nemotron": {
+        "family": "put_in_drawer",
+        "object": "mug_1",
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.053,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": "mug_1",
+        "target": null
+      },
+      "rule_ok": false,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"put_in_drawer\",\"object\":\"mug_1\",\"target\":null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": true,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": false,
+      "rule_object_ok": true,
+      "rule_plan_ok": false,
+      "sim_executable": true
+    },
+    {
+      "set": "indirect",
+      "instruction": "I need a spoon, get the cutlery out where I can reach it.",
+      "family": "open_drawer",
+      "object": null,
+      "nemotron": {
+        "family": "open_drawer",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.627,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": false,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"open_drawer\",\"object\":null,\"target\":null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": false,
+      "rule_object_ok": null,
+      "rule_plan_ok": false,
+      "sim_executable": true
+    },
+    {
+      "set": "indirect",
+      "instruction": "Someone left the cutlery drawer hanging out, fix that.",
+      "family": "close_drawer",
+      "object": null,
+      "nemotron": {
+        "family": "close_drawer",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 3.315,
+      "rule": {
+        "family": "open_drawer",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": false,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\n  \"family\": \"close_drawer\",\n  \"object\": null,\n  \"target\": null\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": false,
+      "rule_object_ok": null,
+      "rule_plan_ok": false,
+      "sim_executable": true
+    },
+    {
+      "set": "indirect",
+      "instruction": "I'll bump my hip on that drawer, push it back in.",
+      "family": "close_drawer",
+      "object": null,
+      "nemotron": {
+        "family": "close_drawer",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.704,
+      "rule": {
+        "family": "close_drawer",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"close_drawer\",\"object\":null,\"target\":null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": null,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "indirect",
+      "instruction": "I want to grab a plate from the cupboard under the counter.",
+      "family": "open_door",
+      "object": null,
+      "nemotron": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "rule_based",
+      "nemotron_ok": false,
+      "nemotron_seconds": 3.47,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": false,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\n  \"family\": null,\n  \"object\": null,\n  \"target\": null\n}",
+      "reply_accepted": false,
+      "reject_reason": "ValueError: plan has no known family: {'family': None, 'object': None, 'target': None}",
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": false,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": false,
+      "rule_family_ok": false,
+      "rule_object_ok": null,
+      "rule_plan_ok": false,
+      "sim_executable": true
+    },
+    {
+      "set": "indirect",
+      "instruction": "The cupboard is gaping open, shut it.",
+      "family": "close_door",
+      "object": null,
+      "nemotron": {
+        "family": "close_door",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.775,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": false,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"close_door\",\"object\":null,\"target\":null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": false,
+      "rule_object_ok": null,
+      "rule_plan_ok": false,
+      "sim_executable": true
+    },
+    {
+      "set": "indirect",
+      "instruction": "There are crumbs everywhere, clean up the counter.",
+      "family": "wipe_counter",
+      "object": null,
+      "nemotron": {
+        "family": "wipe_counter",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "rule_based",
+      "nemotron_ok": true,
+      "nemotron_seconds": 3.568,
+      "rule": {
+        "family": "wipe_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"wipe_counter\",\"object\":\"counter_a\",\"target\":\"sponge_1\"}",
+      "reply_accepted": false,
+      "reject_reason": "ValueError: plan object 'counter_a' is not in the scene",
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": false,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": false,
+      "rule_family_ok": true,
+      "rule_object_ok": null,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "indirect",
+      "instruction": "The counter is sticky, give it a once-over with the sponge.",
+      "family": "wipe_counter",
+      "object": null,
+      "nemotron": {
+        "family": "wipe_counter",
+        "object": "sponge_1",
+        "target": "counter_a"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 4.051,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": "sponge_1",
+        "target": null
+      },
+      "rule_ok": false,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"wipe_counter\",\"object\":\"sponge_1\",\"target\":\"counter_a\"}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": false,
+      "rule_object_ok": null,
+      "rule_plan_ok": false,
+      "sim_executable": true
+    },
+    {
+      "set": "indirect",
+      "instruction": "I want to see what we have for dinner in the fridge.",
+      "family": "open_fridge",
+      "object": null,
+      "nemotron": {
+        "family": "open_fridge",
+        "object": null,
+        "target": "fridge_1"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 2.739,
+      "rule": {
+        "family": "open_fridge",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": true,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"open_fridge\",\"object\":\"fridge_1\",\"target\":null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": true,
+      "rule_object_ok": null,
+      "rule_plan_ok": true,
+      "sim_executable": true
+    },
+    {
+      "set": "indirect",
+      "instruction": "Let me check if we're out of milk.",
+      "family": "open_fridge",
+      "object": null,
+      "nemotron": {
+        "family": "open_fridge",
+        "object": null,
+        "target": "fridge_1"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": true,
+      "nemotron_seconds": 1.891,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": false,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"open_fridge\",\"object\":\"fridge_1\",\"target\":null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": true,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": true,
+      "rule_family_ok": false,
+      "rule_object_ok": null,
+      "rule_plan_ok": false,
+      "sim_executable": true
+    },
+    {
+      "set": "out_of_scope",
+      "instruction": "Turn off the kitchen light.",
+      "family": null,
+      "object": null,
+      "nemotron": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "rule_based",
+      "nemotron_ok": null,
+      "nemotron_seconds": 2.975,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": null,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\n  \"family\": null,\n  \"object\": null,\n  \"target\": null\n}",
+      "reply_accepted": false,
+      "reject_reason": "ValueError: plan has no known family: {'family': None, 'object': None, 'target': None}",
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": null,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": null,
+      "rule_family_ok": null,
+      "rule_object_ok": null,
+      "rule_plan_ok": null,
+      "sim_executable": null
+    },
+    {
+      "set": "out_of_scope",
+      "instruction": "Set a timer for ten minutes.",
+      "family": null,
+      "object": null,
+      "nemotron": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": null,
+      "nemotron_seconds": 2.986,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": null,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"counter_to_counter\",\"object\":null,\"target\":null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": null,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": null,
+      "rule_family_ok": null,
+      "rule_object_ok": null,
+      "rule_plan_ok": null,
+      "sim_executable": null
+    },
+    {
+      "set": "out_of_scope",
+      "instruction": "Order more paper towels.",
+      "family": null,
+      "object": null,
+      "nemotron": {
+        "family": "put_in_drawer",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": null,
+      "nemotron_seconds": 2.817,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": null,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"put_in_drawer\",\"object\":null,\"target\":null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": null,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": null,
+      "rule_family_ok": null,
+      "rule_object_ok": null,
+      "rule_plan_ok": null,
+      "sim_executable": null
+    },
+    {
+      "set": "out_of_scope",
+      "instruction": "Play some music.",
+      "family": null,
+      "object": null,
+      "nemotron": {
+        "family": "put_in_drawer",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": null,
+      "nemotron_seconds": 3.013,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": null,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"put_in_drawer\",\"object\":null,\"target\":null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": null,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": null,
+      "rule_family_ok": null,
+      "rule_object_ok": null,
+      "rule_plan_ok": null,
+      "sim_executable": null
+    },
+    {
+      "set": "out_of_scope",
+      "instruction": "Tell me what time it is.",
+      "family": null,
+      "object": null,
+      "nemotron": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "rule_based",
+      "nemotron_ok": null,
+      "nemotron_seconds": 2.71,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": null,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\": null, \"object\": null, \"target\": null}",
+      "reply_accepted": false,
+      "reject_reason": "ValueError: plan has no known family: {'family': None, 'object': None, 'target': None}",
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": null,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": null,
+      "rule_family_ok": null,
+      "rule_object_ok": null,
+      "rule_plan_ok": null,
+      "sim_executable": null
+    },
+    {
+      "set": "out_of_scope",
+      "instruction": "What's the weather going to be like tomorrow?",
+      "family": null,
+      "object": null,
+      "nemotron": {
+        "family": "open_fridge",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": null,
+      "nemotron_seconds": 2.026,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": null,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\n  \"family\": \"open_fridge\",\n  \"object\": null,\n  \"target\": null\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": null,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": null,
+      "rule_family_ok": null,
+      "rule_object_ok": null,
+      "rule_plan_ok": null,
+      "sim_executable": null
+    },
+    {
+      "set": "out_of_scope",
+      "instruction": "Add eggs to the shopping list.",
+      "family": null,
+      "object": null,
+      "nemotron": {
+        "family": "open_fridge",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": null,
+      "nemotron_seconds": 2.557,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": null,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\": \"open_fridge\", \"object\": null, \"target\": null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": null,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": null,
+      "rule_family_ok": null,
+      "rule_object_ok": null,
+      "rule_plan_ok": null,
+      "sim_executable": null
+    },
+    {
+      "set": "out_of_scope",
+      "instruction": "Feed the cat.",
+      "family": null,
+      "object": null,
+      "nemotron": {
+        "family": "open_fridge",
+        "object": null,
+        "target": "11793D80-8BE3-45F9-AF2F-34068D45F7C2"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": null,
+      "nemotron_seconds": 5.429,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": null,
+      "inventory": "kitchen_real_01",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"open_fridge\",\"object\":null,\"target\":\"11793D80-8BE3-45F9-AF2F-34068D45F7C2\"}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": null,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": null,
+      "rule_family_ok": null,
+      "rule_object_ok": null,
+      "rule_plan_ok": null,
+      "sim_executable": null
+    },
+    {
+      "set": "out_of_scope",
+      "instruction": "Remind me to call my sister at six.",
+      "family": null,
+      "object": null,
+      "nemotron": {
+        "family": "open_fridge",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": null,
+      "nemotron_seconds": 3.075,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": null,
+      "inventory": "kitchen_real_01",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"open_fridge\",\"object\":null,\"target\":null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": null,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": null,
+      "rule_family_ok": null,
+      "rule_object_ok": null,
+      "rule_plan_ok": null,
+      "sim_executable": null
+    },
+    {
+      "set": "out_of_scope",
+      "instruction": "Read me today's news headlines.",
+      "family": null,
+      "object": null,
+      "nemotron": {
+        "family": "open_fridge",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": null,
+      "nemotron_seconds": 4.587,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": null,
+      "inventory": "kitchen_real_01",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"open_fridge\",\"object\":null,\"target\":null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": null,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": null,
+      "rule_family_ok": null,
+      "rule_object_ok": null,
+      "rule_plan_ok": null,
+      "sim_executable": null
+    },
+    {
+      "set": "out_of_scope",
+      "instruction": "How many grams are in a pound?",
+      "family": null,
+      "object": null,
+      "nemotron": {
+        "family": "wipe_counter",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": null,
+      "nemotron_seconds": 3.473,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": null,
+      "inventory": "kitchen_real_01",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"wipe_counter\",\"object\":null,\"target\":null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": null,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": null,
+      "rule_family_ok": null,
+      "rule_object_ok": null,
+      "rule_plan_ok": null,
+      "sim_executable": null
+    },
+    {
+      "set": "out_of_scope",
+      "instruction": "Arm the alarm system.",
+      "family": null,
+      "object": null,
+      "nemotron": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "rule_based",
+      "nemotron_ok": null,
+      "nemotron_seconds": 2.867,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": null,
+      "inventory": "kitchen_real_01",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\": null, \"object\": null, \"target\": null}",
+      "reply_accepted": false,
+      "reject_reason": "ValueError: plan has no known family: {'family': None, 'object': None, 'target': None}",
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": null,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": null,
+      "rule_family_ok": null,
+      "rule_object_ok": null,
+      "rule_plan_ok": null,
+      "sim_executable": null
+    },
+    {
+      "set": "out_of_scope",
+      "instruction": "Tell me a joke.",
+      "family": null,
+      "object": null,
+      "nemotron": {
+        "family": "wipe_counter",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": null,
+      "nemotron_seconds": 1.586,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": null,
+      "inventory": "kitchen_real_01",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"wipe_counter\",\"object\":null,\"target\":null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": null,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": null,
+      "rule_family_ok": null,
+      "rule_object_ok": null,
+      "rule_plan_ok": null,
+      "sim_executable": null
+    },
+    {
+      "set": "out_of_scope",
+      "instruction": "Dim the lights a little.",
+      "family": null,
+      "object": null,
+      "nemotron": {
+        "family": "counter_to_sink",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": null,
+      "nemotron_seconds": 5.178,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": null,
+      "inventory": "kitchen_real_01",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\": \"counter_to_sink\", \"object\": null, \"target\": null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": null,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": null,
+      "rule_family_ok": null,
+      "rule_object_ok": null,
+      "rule_plan_ok": null,
+      "sim_executable": null
+    },
+    {
+      "set": "out_of_scope",
+      "instruction": "What's on my calendar this afternoon?",
+      "family": null,
+      "object": null,
+      "nemotron": {
+        "family": "put_in_drawer",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": null,
+      "nemotron_seconds": 2.5,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": null,
+      "inventory": "office",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"put_in_drawer\",\"object\":null,\"target\":null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": null,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": null,
+      "rule_family_ok": null,
+      "rule_object_ok": null,
+      "rule_plan_ok": null,
+      "sim_executable": null
+    },
+    {
+      "set": "out_of_scope",
+      "instruction": "Translate good morning into Spanish.",
+      "family": null,
+      "object": null,
+      "nemotron": {
+        "family": "counter_to_sink",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": null,
+      "nemotron_seconds": 3.192,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": null,
+      "inventory": "office",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\n  \"family\": \"counter_to_sink\",\n  \"object\": null,\n  \"target\": null\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": null,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": null,
+      "rule_family_ok": null,
+      "rule_object_ok": null,
+      "rule_plan_ok": null,
+      "sim_executable": null
+    },
+    {
+      "set": "out_of_scope",
+      "instruction": "Call me a taxi for eight o'clock.",
+      "family": null,
+      "object": null,
+      "nemotron": {
+        "family": "open_fridge",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": null,
+      "nemotron_seconds": 1.717,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": null,
+      "inventory": "office",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\": \"open_fridge\", \"object\": null, \"target\": null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": null,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": null,
+      "rule_family_ok": null,
+      "rule_object_ok": null,
+      "rule_plan_ok": null,
+      "sim_executable": null
+    },
+    {
+      "set": "out_of_scope",
+      "instruction": "Make it a bit warmer in here.",
+      "family": null,
+      "object": null,
+      "nemotron": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "rule_based",
+      "nemotron_ok": null,
+      "nemotron_seconds": 3.483,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": null,
+      "inventory": "office",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\": null, \"object\": null, \"target\": null}",
+      "reply_accepted": false,
+      "reject_reason": "ValueError: plan has no known family: {'family': None, 'object': None, 'target': None}",
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": null,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": null,
+      "rule_family_ok": null,
+      "rule_object_ok": null,
+      "rule_plan_ok": null,
+      "sim_executable": null
+    },
+    {
+      "set": "out_of_scope",
+      "instruction": "Make the music quieter.",
+      "family": null,
+      "object": null,
+      "nemotron": {
+        "family": "put_in_drawer",
+        "object": "laptop_1",
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": null,
+      "nemotron_seconds": 2.747,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": null,
+      "inventory": "office",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\": \"put_in_drawer\", \"object\": \"laptop_1\", \"target\": null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": null,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": null,
+      "rule_family_ok": null,
+      "rule_object_ok": null,
+      "rule_plan_ok": null,
+      "sim_executable": null
+    },
+    {
+      "set": "out_of_scope",
+      "instruction": "Send a message saying I'm running late.",
+      "family": null,
+      "object": null,
+      "nemotron": {
+        "family": "counter_to_counter",
+        "object": "laptop_1",
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": null,
+      "nemotron_seconds": 3.666,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": null,
+      "inventory": "office",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\n  \"family\": \"counter_to_counter\",\n  \"object\": \"laptop_1\",\n  \"target\": null\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": null,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": null,
+      "rule_family_ok": null,
+      "rule_object_ok": null,
+      "rule_plan_ok": null,
+      "sim_executable": null
+    },
+    {
+      "set": "unlisted_families",
+      "instruction": "Open the oven so I can check on the bread.",
+      "family": "open_oven",
+      "object": null,
+      "nemotron": {
+        "family": "open_door",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": false,
+      "nemotron_seconds": 2.594,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": false,
+      "inventory": "kitchen_real_01",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\n  \"family\": \"open_door\",\n  \"object\": null,\n  \"target\": null\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": false,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": false,
+      "rule_family_ok": false,
+      "rule_object_ok": null,
+      "rule_plan_ok": false,
+      "sim_executable": true
+    },
+    {
+      "set": "unlisted_families",
+      "instruction": "Pull the oven door down.",
+      "family": "open_oven",
+      "object": null,
+      "nemotron": {
+        "family": "open_door",
+        "object": null,
+        "target": "11793D80-8BE3-45F9-AF2F-34068D45F7C2"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": false,
+      "nemotron_seconds": 4.22,
+      "rule": {
+        "family": "open_door",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": false,
+      "inventory": "kitchen_real_01",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"open_door\",\"object\":\"11793D80-8BE3-45F9-AF2F-34068D45F7C2\",\"target\":null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": false,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": false,
+      "rule_family_ok": false,
+      "rule_object_ok": null,
+      "rule_plan_ok": false,
+      "sim_executable": true
+    },
+    {
+      "set": "unlisted_families",
+      "instruction": "Get the oven open, I want to slide the tray in.",
+      "family": "open_oven",
+      "object": null,
+      "nemotron": {
+        "family": "open_door",
+        "object": null,
+        "target": "807FD3A5-AF23-4620-A58F-D4FDD13850A3"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": false,
+      "nemotron_seconds": 3.341,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": false,
+      "inventory": "kitchen_real_01",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\n  \"family\": \"open_door\",\n  \"object\": \"807FD3A5-AF23-4620-A58F-D4FDD13850A3\",\n  \"target\": null\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": false,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": false,
+      "rule_family_ok": false,
+      "rule_object_ok": null,
+      "rule_plan_ok": false,
+      "sim_executable": true
+    },
+    {
+      "set": "unlisted_families",
+      "instruction": "Open the dishwasher, I want to see if it's done.",
+      "family": "open_dishwasher",
+      "object": null,
+      "nemotron": {
+        "family": "open_door",
+        "object": null,
+        "target": "F068E3AE-575B-49A0-BD35-8E233153BE91"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": false,
+      "nemotron_seconds": 5.241,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": false,
+      "inventory": "kitchen_real_01",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\n  \"family\": \"open_door\",\n  \"object\": \"F068E3AE-575B-49A0-BD35-8E233153BE91\",\n  \"target\": null\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": false,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": false,
+      "rule_family_ok": false,
+      "rule_object_ok": null,
+      "rule_plan_ok": false,
+      "sim_executable": true
+    },
+    {
+      "set": "unlisted_families",
+      "instruction": "Fold the dishwasher door down.",
+      "family": "open_dishwasher",
+      "object": null,
+      "nemotron": {
+        "family": "open_door",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": false,
+      "nemotron_seconds": 2.262,
+      "rule": {
+        "family": "open_door",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": false,
+      "inventory": "kitchen_real_01",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"open_door\",\"object\":null,\"target\":null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": false,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": false,
+      "rule_family_ok": false,
+      "rule_object_ok": null,
+      "rule_plan_ok": false,
+      "sim_executable": true
+    },
+    {
+      "set": "unlisted_families",
+      "instruction": "Is the dishwasher finished? Open it up and let me look.",
+      "family": "open_dishwasher",
+      "object": null,
+      "nemotron": {
+        "family": "open_door",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": false,
+      "nemotron_seconds": 1.786,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": false,
+      "inventory": "kitchen_real_01",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"open_door\",\"object\":null,\"target\":null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": false,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": false,
+      "rule_family_ok": false,
+      "rule_object_ok": null,
+      "rule_plan_ok": false,
+      "sim_executable": true
+    },
+    {
+      "set": "unlisted_families",
+      "instruction": "Put the cup in the dishwasher.",
+      "family": "load_dishwasher",
+      "object": "cup_1",
+      "nemotron": {
+        "family": "put_in_drawer",
+        "object": "cup_1",
+        "target": "CC64C90B-5AD3-4C42-8E56-3D8B4FE9C9B9"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": false,
+      "nemotron_seconds": 2.819,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": "cup_1",
+        "target": null
+      },
+      "rule_ok": false,
+      "inventory": "kitchen_real_01",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\n  \"family\": \"put_in_drawer\",\n  \"object\": \"cup_1\",\n  \"target\": \"CC64C90B-5AD3-4C42-8E56-3D8B4FE9C9B9\"\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": false,
+      "nemotron_object_ok": true,
+      "nemotron_plan_ok": false,
+      "rule_family_ok": false,
+      "rule_object_ok": true,
+      "rule_plan_ok": false,
+      "sim_executable": true
+    },
+    {
+      "set": "unlisted_families",
+      "instruction": "The cup is dirty, load it into the dishwasher.",
+      "family": "load_dishwasher",
+      "object": "cup_1",
+      "nemotron": {
+        "family": "put_in_drawer",
+        "object": "cup_1",
+        "target": "F9337652-45E5-419A-B727-FE171FB57F90"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": false,
+      "nemotron_seconds": 3.338,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": "cup_1",
+        "target": null
+      },
+      "rule_ok": false,
+      "inventory": "kitchen_real_01",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\n  \"family\": \"put_in_drawer\",\n  \"object\": \"cup_1\",\n  \"target\": \"F9337652-45E5-419A-B727-FE171FB57F90\"\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": false,
+      "nemotron_object_ok": true,
+      "nemotron_plan_ok": false,
+      "rule_family_ok": false,
+      "rule_object_ok": true,
+      "rule_plan_ok": false,
+      "sim_executable": true
+    },
+    {
+      "set": "unlisted_families",
+      "instruction": "Put the apple in the dishwasher rack.",
+      "family": "load_dishwasher",
+      "object": "apple_1",
+      "nemotron": {
+        "family": "put_in_drawer",
+        "object": "apple_1",
+        "target": "11793D80-8BE3-45F9-AF2F-34068D45F7C2"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": false,
+      "nemotron_seconds": 3.83,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": "apple_1",
+        "target": null
+      },
+      "rule_ok": false,
+      "inventory": "kitchen_real_01",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\n  \"family\": \"put_in_drawer\",\n  \"object\": \"apple_1\",\n  \"target\": \"11793D80-8BE3-45F9-AF2F-34068D45F7C2\"\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": false,
+      "nemotron_object_ok": true,
+      "nemotron_plan_ok": false,
+      "rule_family_ok": false,
+      "rule_object_ok": true,
+      "rule_plan_ok": false,
+      "sim_executable": true
+    },
+    {
+      "set": "unlisted_families",
+      "instruction": "Rack the apple in the dishwasher with the other things.",
+      "family": "load_dishwasher",
+      "object": "apple_1",
+      "nemotron": {
+        "family": "put_in_drawer",
+        "object": null,
+        "target": "CC64C90B-5AD3-4C42-8E56-3D8B4FE9C9B9"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": false,
+      "nemotron_seconds": 6.93,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": "apple_1",
+        "target": null
+      },
+      "rule_ok": false,
+      "inventory": "kitchen_real_01",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\n  \"family\": \"put_in_drawer\",\n  \"object\": \"CC64C90B-5AD3-4C42-8E56-3D8B4FE9C9B9\",\n  \"target\": null\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": false,
+      "nemotron_object_ok": false,
+      "nemotron_plan_ok": false,
+      "rule_family_ok": false,
+      "rule_object_ok": true,
+      "rule_plan_ok": false,
+      "sim_executable": true
+    },
+    {
+      "set": "unlisted_families",
+      "instruction": "Get the clean cup out of the dishwasher.",
+      "family": "unload_dishwasher",
+      "object": "cup_1",
+      "nemotron": {
+        "family": "open_door",
+        "object": null,
+        "target": "11793D80-8BE3-45F9-AF2F-34068D45F7C2"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": false,
+      "nemotron_seconds": 4.404,
+      "rule": {
+        "family": "wipe_counter",
+        "object": "cup_1",
+        "target": null
+      },
+      "rule_ok": false,
+      "inventory": "kitchen_real_01",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n{\n  \"family\": \"open_door\",\n  \"object\": null,\n  \"target\": \"11793D80-8BE3-45F9-AF2F-34068D45F7C2\"\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": false,
+      "nemotron_object_ok": false,
+      "nemotron_plan_ok": false,
+      "rule_family_ok": false,
+      "rule_object_ok": true,
+      "rule_plan_ok": false,
+      "sim_executable": true
+    },
+    {
+      "set": "unlisted_families",
+      "instruction": "Take the cup out of the dishwasher and put it on the counter.",
+      "family": "unload_dishwasher",
+      "object": "cup_1",
+      "nemotron": {
+        "family": "counter_to_counter",
+        "object": "cup_1",
+        "target": "807FD3A5-AF23-4620-A58F-D4FDD13850A3"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": false,
+      "nemotron_seconds": 10.684,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": "cup_1",
+        "target": null
+      },
+      "rule_ok": false,
+      "inventory": "kitchen_real_01",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\n  \"family\": \"counter_to_counter\",\n  \"object\": \"cup_1\",\n  \"target\": \"807FD3A5-AF23-4620-A58F-D4FDD13850A3\"\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": false,
+      "nemotron_object_ok": true,
+      "nemotron_plan_ok": false,
+      "rule_family_ok": false,
+      "rule_object_ok": true,
+      "rule_plan_ok": false,
+      "sim_executable": true
+    },
+    {
+      "set": "unlisted_families",
+      "instruction": "Unload the apple from the dishwasher.",
+      "family": "unload_dishwasher",
+      "object": "apple_1",
+      "nemotron": {
+        "family": "open_drawer",
+        "object": null,
+        "target": "11793D80-8BE3-45F9-AF2F-34068D45F7C2"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": false,
+      "nemotron_seconds": 7.647,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": "apple_1",
+        "target": null
+      },
+      "rule_ok": false,
+      "inventory": "kitchen_real_01",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"open_drawer\",\"object\":\"11793D80-8BE3-45F9-AF2F-34068D45F7C2\",\"target\":null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": false,
+      "nemotron_object_ok": false,
+      "nemotron_plan_ok": false,
+      "rule_family_ok": false,
+      "rule_object_ok": true,
+      "rule_plan_ok": false,
+      "sim_executable": true
+    },
+    {
+      "set": "unlisted_families",
+      "instruction": "The apple is in the dishwasher, take it out.",
+      "family": "unload_dishwasher",
+      "object": "apple_1",
+      "nemotron": {
+        "family": "open_door",
+        "object": "apple_1",
+        "target": "11793D80-8BE3-45F9-AF2F-34068D45F7C2"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": false,
+      "nemotron_seconds": 3.985,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": "apple_1",
+        "target": null
+      },
+      "rule_ok": false,
+      "inventory": "kitchen_real_01",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"open_door\",\"object\":\"apple_1\",\"target\":\"11793D80-8BE3-45F9-AF2F-34068D45F7C2\"}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": false,
+      "nemotron_object_ok": true,
+      "nemotron_plan_ok": false,
+      "rule_family_ok": false,
+      "rule_object_ok": true,
+      "rule_plan_ok": false,
+      "sim_executable": true
+    },
+    {
+      "set": "unlisted_families",
+      "instruction": "Turn on the faucet.",
+      "family": "turn_on_faucet",
+      "object": null,
+      "nemotron": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "rule_based",
+      "nemotron_ok": false,
+      "nemotron_seconds": 3.91,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": false,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n{\n  \"family\": null,\n  \"object\": null,\n  \"target\": null\n}",
+      "reply_accepted": false,
+      "reject_reason": "ValueError: plan has no known family: {'family': None, 'object': None, 'target': None}",
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": false,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": false,
+      "rule_family_ok": false,
+      "rule_object_ok": null,
+      "rule_plan_ok": false,
+      "sim_executable": true
+    },
+    {
+      "set": "unlisted_families",
+      "instruction": "I need water running in the sink to rinse my hands.",
+      "family": "turn_on_faucet",
+      "object": null,
+      "nemotron": {
+        "family": "counter_to_sink",
+        "object": null,
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": false,
+      "nemotron_seconds": 2.93,
+      "rule": {
+        "family": "counter_to_sink",
+        "object": null,
+        "target": "sink_1"
+      },
+      "rule_ok": false,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\"family\":\"counter_to_sink\",\"object\":null,\"target\":null}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": false,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": false,
+      "rule_family_ok": false,
+      "rule_object_ok": null,
+      "rule_plan_ok": false,
+      "sim_executable": true
+    },
+    {
+      "set": "unlisted_families",
+      "instruction": "Turn the tap on for me.",
+      "family": "turn_on_faucet",
+      "object": null,
+      "nemotron": {
+        "family": "counter_to_sink",
+        "object": null,
+        "target": "sink_1"
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": false,
+      "nemotron_seconds": 3.218,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": null,
+        "target": null
+      },
+      "rule_ok": false,
+      "inventory": "hero_kitchen",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\n  \"family\": \"counter_to_sink\",\n  \"object\": null,\n  \"target\": \"sink_1\"\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": false,
+      "nemotron_object_ok": null,
+      "nemotron_plan_ok": false,
+      "rule_family_ok": false,
+      "rule_object_ok": null,
+      "rule_plan_ok": false,
+      "sim_executable": true
+    },
+    {
+      "set": "unlisted_families",
+      "instruction": "Move the book further along the table.",
+      "family": "move_on_table",
+      "object": "book_1",
+      "nemotron": {
+        "family": "counter_to_counter",
+        "object": "book_1",
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": false,
+      "nemotron_seconds": 2.426,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": "book_1",
+        "target": null
+      },
+      "rule_ok": false,
+      "inventory": "office",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n{\n  \"family\": \"counter_to_counter\",\n  \"object\": \"book_1\",\n  \"target\": null\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": false,
+      "nemotron_object_ok": true,
+      "nemotron_plan_ok": false,
+      "rule_family_ok": false,
+      "rule_object_ok": true,
+      "rule_plan_ok": false,
+      "sim_executable": true
+    },
+    {
+      "set": "unlisted_families",
+      "instruction": "Slide the book down the table a bit, it's in my way.",
+      "family": "move_on_table",
+      "object": "book_1",
+      "nemotron": {
+        "family": "counter_to_counter",
+        "object": "book_1",
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": false,
+      "nemotron_seconds": 3.534,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": "book_1",
+        "target": null
+      },
+      "rule_ok": false,
+      "inventory": "office",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\n  \"family\": \"counter_to_counter\",\n  \"object\": \"book_1\",\n  \"target\": null\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": false,
+      "nemotron_object_ok": true,
+      "nemotron_plan_ok": false,
+      "rule_family_ok": false,
+      "rule_object_ok": true,
+      "rule_plan_ok": false,
+      "sim_executable": true
+    },
+    {
+      "set": "unlisted_families",
+      "instruction": "Shift the book to another spot on the table.",
+      "family": "move_on_table",
+      "object": "book_1",
+      "nemotron": {
+        "family": "counter_to_counter",
+        "object": "book_1",
+        "target": null
+      },
+      "nemotron_source": "token_factory",
+      "nemotron_ok": false,
+      "nemotron_seconds": 1.925,
+      "rule": {
+        "family": "counter_to_counter",
+        "object": "book_1",
+        "target": null
+      },
+      "rule_ok": false,
+      "inventory": "office",
+      "live_call": true,
+      "calls": 1,
+      "raw_reply": "\n\n{\n  \"family\": \"counter_to_counter\",\n  \"object\": \"book_1\",\n  \"target\": null\n}",
+      "reply_accepted": true,
+      "reject_reason": null,
+      "call_error": null,
+      "call_error_kind": null,
+      "nemotron_family_ok": false,
+      "nemotron_object_ok": true,
+      "nemotron_plan_ok": false,
+      "rule_family_ok": false,
+      "rule_object_ok": true,
+      "rule_plan_ok": false,
+      "sim_executable": true
+    }
+  ]
+}

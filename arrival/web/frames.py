@@ -165,6 +165,9 @@ def validate(root: Path) -> dict:
         if m.depth_unit == "m":
             try:
                 head = np.load(f.depth, mmap_mode="r", allow_pickle=False)
+                if not isinstance(head, np.ndarray):
+                    head.close()
+                    raise ValueError("expected a plain .npy array, not an archive")
             except Exception as e:  # noqa: BLE001
                 raise FramesError("bad_depth", f"depth {f.depth.name} is not a plain .npy array: {type(e).__name__}") from None
             shape, dtype = head.shape, head.dtype

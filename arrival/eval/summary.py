@@ -44,7 +44,9 @@ def resolve_room(spec: str, scans_dir: Path) -> tuple[str, Path]:
     for name in ("scan.json", "roomplan.json"):
         if (scans_dir / spec / name).is_file():
             return spec, scans_dir / spec / name
-    raise FileNotFoundError(f"room {spec!r} not found under {scans_dir}")
+    from arrival.scan.bundle import rooms_hint
+
+    raise FileNotFoundError(f"room {spec!r} not found under {scans_dir} ({rooms_hint(spec, scans_dir)})")
 
 
 def _measurements(room: str, scans_dir: Path) -> Path | None:

@@ -105,7 +105,7 @@ class LocalBackend:
     storage. `fail_first={i}` makes shard i's first submission exit non-zero without running (test hook)."""
 
     def __init__(self, store: str | Path, scratch: str | Path, fail_first=(), command: Callable | None = None):
-        self.store, self.scratch = Path(store), Path(scratch)
+        self.store, self.scratch = Path(store).absolute(), Path(scratch).absolute()  # shards run with cwd at the repo
         self.store.mkdir(parents=True, exist_ok=True)
         self.fail_first = set(fail_first)
         self.command = command  # (cfg, i, out_dir) -> argv; default runs arrival sim
@@ -122,7 +122,11 @@ class LocalBackend:
         elif self.command:
             argv = self.command(cfg, i, out)
         else:
-            argv = [sys.executable, "-m", "arrival", *cfg.sim_args(i), "--out", str(out)]
+            args = cfg.sim_args(i)
+            k = args.index("--scans") + 1
+            if Path(args[k]).exists():  # else the shard falls back to <repo>/scans itself, as resolve_scans does
+                args[k] = str(Path(args[k]).absolute())
+            argv = [sys.executable, "-m", "arrival", *args, "--out", str(out)]
         root = Path(__file__).resolve().parents[2]
         log = open(out / f"attempt{n}.log", "wb")
         proc = subprocess.Popen(argv, cwd=root, stdout=log, stderr=subprocess.STDOUT)

@@ -120,6 +120,9 @@ def validate(root: str | Path) -> list[str]:
         errors.append("episodes_stats.jsonl row count != episodes.jsonl")
 
     size = info.get("chunks_size", 1000)
+    if type(size) is not int or size <= 0:
+        errors.append(f"info.chunks_size must be a positive integer, got {size!r}")
+        return errors
     want_chunks = max(1, -(-len(episodes) // size))
     if info.get("total_chunks") != want_chunks:
         errors.append(f"info.total_chunks={info.get('total_chunks')}, expected {want_chunks}")

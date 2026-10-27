@@ -111,7 +111,11 @@ def validate(bundle: dict) -> dict:
             if any(not isinstance(item.get(k), (list, tuple)) or len(item[k]) != 3 for k in ("size", "position")):
                 raise ScanBundleError(f"{item.get('id')}: size and position must have 3 values")
     for fl in bundle.get("floors", []):
-        if not isinstance(fl, dict) or len(fl.get("corners", [])) < 3 or any(len(c) != 2 for c in fl["corners"]):
+        if not isinstance(fl, dict):
+            raise ScanBundleError("floors entries must be objects")
+        corners = fl.get("corners")
+        if (not isinstance(corners, (list, tuple)) or len(corners) < 3
+                or any(not isinstance(c, (list, tuple)) or len(c) != 2 for c in corners)):
             raise ScanBundleError(f"{fl.get('id')}: floor corners must be 3 or more [x, y] points")
     for key in ("story", "story_count"):
         if key in bundle and not isinstance(bundle[key], int):
@@ -133,3 +137,17 @@ def load(path: str | Path) -> dict:
 
 def load_room(room_id: str, scans_dir: str | Path = "scans") -> dict:
     return load(Path(scans_dir) / room_id / "scan.json")
+
+
+FIXTURE_SCANS = Path(__file__).resolve().parents[2] / "tests" / "fixtures" / "scans"
+
+
+def rooms_hint(room_id: str, scans_dir: str | Path = "scans") -> str:
+    """For a 'room not found' error: the rooms that are under scans_dir, and the --scans a test room needs."""
+    scans_dir = Path(scans_dir)
+    found = sorted(p.name for p in scans_dir.iterdir()
+                   if (p / "scan.json").is_file() or (p / "roomplan.json").is_file()) if scans_dir.is_dir() else []
+    hint = f"rooms under {scans_dir}: {', '.join(found)}" if found else f"no rooms under {scans_dir}"
+    if (FIXTURE_SCANS / room_id).is_dir() and not (scans_dir.is_dir() and scans_dir.samefile(FIXTURE_SCANS)):
+        hint += f"; {room_id} is a test room, add --scans tests/fixtures/scans"
+    return hint

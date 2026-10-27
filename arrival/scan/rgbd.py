@@ -63,8 +63,8 @@ def _fail(code: str, message: str):
 def _matrix(value, what: str) -> np.ndarray:
     try:
         m = np.asarray(value, dtype=float)
-    except (TypeError, ValueError):
-        _fail("bad_matrix", f"{what} is not numeric")
+    except (TypeError, ValueError, OverflowError):
+        _fail("bad_matrix", f"{what} cannot be represented as numeric values")
     if m.size != 16:
         _fail("bad_matrix", f"{what} needs 16 row-major numbers, got {m.size}")
     m = m.reshape(4, 4)
@@ -129,7 +129,11 @@ def load_manifest(directory) -> Manifest:
             _fail("duplicate_frame_id", f"frame id {fid!r} appears twice")
         seen.add(fid)
         t = e.get("timestamp")
-        if not isinstance(t, (int, float)) or isinstance(t, bool) or not math.isfinite(t):
+        try:
+            valid_timestamp = isinstance(t, (int, float)) and not isinstance(t, bool) and math.isfinite(t)
+        except OverflowError:
+            valid_timestamp = False
+        if not valid_timestamp:
             _fail("timestamp", f"frame {fid} timestamp is not a finite number")
         if t <= last_t:
             _fail("non_monotonic_timestamps", f"frame {fid} timestamp {t} is not after {last_t}")
@@ -143,7 +147,10 @@ def load_manifest(directory) -> Manifest:
             _fail("intrinsics", f"frame {fid} needs numeric fx fy cx cy")
         if any(type(value) not in (int, float) for value in values):
             _fail("intrinsics", f"frame {fid} needs numeric fx fy cx cy")
-        fx, fy, cx, cy = map(float, values)
+        try:
+            fx, fy, cx, cy = map(float, values)
+        except OverflowError:
+            _fail("intrinsics", f"frame {fid} intrinsics cannot be represented as finite numbers")
         if not all(math.isfinite(x) for x in (fx, fy, cx, cy)) or fx <= 0 or fy <= 0:
             _fail("intrinsics", f"frame {fid} intrinsics must be finite with fx, fy > 0")
         T = _matrix(e.get("camera_to_room"), f"frame {fid} camera_to_room")

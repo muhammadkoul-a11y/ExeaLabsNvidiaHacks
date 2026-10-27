@@ -180,9 +180,12 @@ enum ZipWriter {
         files.sort { $0.name < $1.name }
         guard files.count < 0xffff else { throw ZipError.tooLarge }
 
-        if fm.fileExists(atPath: output.path) { try fm.removeItem(at: output) }
-        fm.createFile(atPath: output.path, contents: nil)
-        let handle = try FileHandle(forWritingTo: output)
+        // Publish only a complete archive; a failed read/write must leave the previous zip intact.
+        let staging = output.deletingLastPathComponent()
+            .appendingPathComponent(".\(output.lastPathComponent).\(UUID().uuidString).tmp")
+        defer { try? fm.removeItem(at: staging) }
+        fm.createFile(atPath: staging.path, contents: nil)
+        let handle = try FileHandle(forWritingTo: staging)
         defer { try? handle.close() }
         var central = Data()
         var offset: UInt64 = 0
@@ -218,6 +221,12 @@ enum ZipWriter {
         end.append(le32(UInt32(central.count))); end.append(le32(UInt32(offset))); end.append(le16(0))
         try handle.write(contentsOf: central)
         try handle.write(contentsOf: end)
+        try handle.close()
+        if fm.fileExists(atPath: output.path) {
+            _ = try fm.replaceItemAt(output, withItemAt: staging)
+        } else {
+            try fm.moveItem(at: staging, to: output)
+        }
     }
 
     private static let table: [UInt32] = (0..<256).map { n -> UInt32 in

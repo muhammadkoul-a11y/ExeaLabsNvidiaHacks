@@ -4,6 +4,8 @@ Specified so the next night does not redesign. None of these are tasks in [06-ag
 
 ## Physics generator
 
+A native prototype is now available in `arrival/generate/se3_retarget.py` (see [the command and provenance contract](REFERENCE.md#closed-loop-eval)). It retargets executed end-effector trajectories in object and sink SE(3) frames, bridges segments smoothly, solves IK and exports only successful MuJoCo rollouts without human contact. Its generator label is `object_centric_se3_retarget`; it does not call the upstream MimicGen framework. G7/issue #62 remains open for licensed or teleoperated seed sets, actual upstream integration, the 100-episode benchmark and comparison against the expert. The external import probe and S20 translation replay remain separate.
+
 Replace `scripted_retarget` with RoboCasa MimicGen for `counter_to_sink`:
 
 ```bash

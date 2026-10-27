@@ -72,3 +72,7 @@ reference photos without EXIF, writes the notes and tape measurements and runs t
   is unchecked; with no depth the recorder keeps nothing and the scan page says so.
 - Command-line compile check without signing:
   `xcodebuild -project ios/ArrivalCapture/ArrivalCapture.xcodeproj -target ArrivalCapture -sdk iphoneos CODE_SIGNING_ALLOWED=NO SYMROOT=ios/build build`
+
+Frame archives are built in a temporary file next to `frames.zip` and published only after the ZIP is
+complete and closed. If a frame cannot be read or writing fails, the unfinished temporary file is
+removed and any previous archive remains intact. Reopening the survey retries a missing archive.

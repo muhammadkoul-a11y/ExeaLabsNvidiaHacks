@@ -248,6 +248,8 @@ def merge_shards(sources: list[str | Path], out_dir: str | Path = "out", log=pri
     info0 = first["info"]
     room, fps = info0["arrival_room_id"], info0["fps"]
     cams = [k.removeprefix("observation.images.") for k, v in info0["features"].items() if v.get("dtype") == "video"]
+    if not cams:
+        raise ShardError("the shards have no video features; merge-shards requires at least one camera")
     res = info0["features"][f"observation.images.{cams[0]}"]["shape"][0]
 
     def episode_files(s: dict, row: dict) -> tuple[Path, dict[str, Path]]:

@@ -236,3 +236,20 @@ def test_doctor_nebius_cloud_env_keys(tmp_path):
         assert "set in the environment" in chk.detail
         assert env[k] not in chk.detail  # value never leaked
 
+
+def test_token_factory_key_without_model_ids_warns(tmp_path):
+    # With the key set but no model ids, the planner and the wordings fall back offline; doctor must say so.
+    checks = check_env(environ={"TOKEN_FACTORY_API_KEY": "k"}, env_files=[])
+    warned = {c.name for c in checks if c.status == "warn"}
+    assert warned == {"NEMOTRON_SUPER_MODEL", "NEMOTRON_LIGHTNING_MODEL", "NEMOTRON_OMNI_MODEL"}
+    assert "warning(s)" in render(checks)
+    assert exit_code(checks) == 0
+
+    env_file = tmp_path / ".env"
+    env_file.write_text("TOKEN_FACTORY_API_KEY=k\nNEMOTRON_SUPER_MODEL=nvidia/nemotron-3-super-120b-a12b\n", encoding="utf-8")
+    checks = check_env(environ={"NEMOTRON_OMNI_MODEL": "m"}, env_files=[env_file])
+    assert [c.name for c in checks if c.status == "warn"] == ["NEMOTRON_LIGHTNING_MODEL"]
+    assert not any("nemotron-3-super" in c.detail for c in checks)
+
+    # No key: the model ids do not matter, so nothing is flagged.
+    assert not any(c.status == "warn" for c in check_env(environ={}, env_files=[]))

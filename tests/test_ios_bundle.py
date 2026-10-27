@@ -4,6 +4,7 @@ arrival/scan/rgbd.py expects. ARKit itself is not exercised: the recorder that r
 
 import http.client
 import json
+import os
 import platform
 import shutil
 import subprocess
@@ -143,3 +144,44 @@ def test_app_upload_body_with_frames_is_queued(bundle_check, recorded, tmp_path)
     status = json.loads((job / "status.json").read_text())
     assert status["frames"]["count"] == 6 and status["frames"]["heldout"] == 1
     assert (job / "frames" / "frames_manifest.json").is_file()
+
+
+@pytest.mark.parametrize("existing", [False, True])
+def test_failed_ios_zip_preserves_destination(bundle_check, tmp_path, existing):
+    folder = tmp_path / "frames"
+    folder.mkdir()
+    (folder / "a-readable.txt").write_text("first frame")
+    unreadable = folder / "z-unreadable.txt"
+    unreadable.write_text("cannot read this frame")
+    unreadable.chmod(0)
+    output = tmp_path / "frames.zip"
+    previous = b"previous complete archive"
+    if existing:
+        output.write_bytes(previous)
+    try:
+        if os.access(unreadable, os.R_OK):
+            pytest.skip("requires file read permission enforcement")
+        result = subprocess.run([str(bundle_check), "zip", str(folder), str(output)],
+                                capture_output=True, text=True, timeout=10)
+        assert result.returncode == 1
+        if existing:
+            assert output.read_bytes() == previous
+        else:
+            assert not output.exists()
+        assert {p.name for p in tmp_path.iterdir()} == ({"frames", "frames.zip"} if existing else {"frames"})
+    finally:
+        unreadable.chmod(0o600)
+
+
+def test_ios_zip_replaces_existing_archive(bundle_check, tmp_path):
+    folder = tmp_path / "frames"
+    folder.mkdir()
+    (folder / "frame.txt").write_text("complete frame")
+    output = tmp_path / "frames.zip"
+    output.write_bytes(b"old archive")
+    subprocess.run([str(bundle_check), "zip", str(folder), str(output)],
+                   check=True, capture_output=True, timeout=10)
+    with zipfile.ZipFile(output) as archive:
+        assert archive.testzip() is None
+        assert archive.read("frame.txt") == b"complete frame"
+    assert {p.name for p in tmp_path.iterdir()} == {"frames", "frames.zip"}

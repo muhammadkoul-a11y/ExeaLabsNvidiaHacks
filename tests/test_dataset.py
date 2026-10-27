@@ -347,3 +347,23 @@ def test_writer_rejects_video_pixel_coercion_before_writing(tmp_path):
         w.add_episode(z, z, [0, .05], "task", True, videos={"ego_view": bad})
     assert not list((tmp_path / "ds").glob("data/**/*.parquet"))
     w.close()
+
+
+@pytest.mark.parametrize("size", [0, -1, True, 2.5, "1000", None])
+def test_validator_reports_invalid_chunk_size_without_crashing(tmp_path, size):
+    import numpy as np
+
+    modality = {"state": {"arm": {"start": 0, "end": 2}},
+                "action": {"arm": {"start": 0, "end": 2, "absolute": True}},
+                "annotation": {"human.task_description": {}}}
+    writer = _writer(tmp_path, modality=modality)
+    writer.add_episode(np.zeros((2, 2)), np.zeros((2, 2)), np.arange(2) / 20, "task", True)
+    writer.finish(1)
+    root = tmp_path / "ds"
+    assert validate(root) == []
+    info_path = root / "meta" / "info.json"
+    info = json.loads(info_path.read_text())
+    info["chunks_size"] = size
+    info_path.write_text(json.dumps(info))
+    errors = validate(root)
+    assert any("chunks_size" in error and "positive integer" in error for error in errors)

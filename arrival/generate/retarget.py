@@ -169,7 +169,7 @@ def retarget(twin: dict, out_dir: str | Path = "out", attempts: int = 6, seed: i
 
 
 def main(argv=None) -> int:
-    from arrival.scan.bundle import load_room
+    from arrival.scan.bundle import load_room, rooms_hint
     from arrival.twin.compile import compile_twin
 
     ap = argparse.ArgumentParser(prog="python -m arrival.generate.retarget", description=__doc__.split("\n\n")[0])
@@ -191,7 +191,7 @@ def main(argv=None) -> int:
     try:
         bundle = load_room(a.room, a.scans)
     except FileNotFoundError:
-        ap.error(f"no scan for room {a.room!r} under {a.scans}")
+        ap.error(f"no scan for room {a.room!r} under {a.scans} ({rooms_hint(a.room, a.scans)})")
     r = retarget(compile_twin(bundle), a.out, a.attempts, a.seed, a.res, a.family, baseline=a.baseline)
     print(json.dumps({k: v for k, v in r["report_data"].items() if k != "rows"}, indent=2))
     return 0

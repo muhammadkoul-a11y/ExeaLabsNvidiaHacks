@@ -558,12 +558,15 @@ def collect(twin: dict, families: list[str], episodes: int, out_dir: str | Path 
                 task["tavily_enriched"] = True
             # the planner only refines a task's own fields: its family, and the pick/place fields other families lack,
             # stay as make_tasks set them (a rewritten family would miss its source/target/fixture or flip open/close)
+            # a plan for another family names that family's roles (wipe_counter's target is the counter to wipe),
+            # so none of its fields are taken
             if plan.get("family") and plan["family"] != task["family"]:
                 log(f"[sim] task {task['task_id']}: planner family {plan['family']} != {task['family']}; keeping the task's")
-            if plan.get("object") and plan["object"] in obj_ids and "object_id" in task:
-                task["object_id"] = plan["object"]
-            if plan.get("target") and plan["target"] in fx_ids and "target" in task:
-                task["target"] = plan["target"]
+            else:
+                if plan.get("object") and plan["object"] in obj_ids and "object_id" in task:
+                    task["object_id"] = plan["object"]
+                if plan.get("target") and plan["target"] in fx_ids and "target" in task:
+                    task["target"] = plan["target"]
             log(f"[sim] task {task['task_id']}: planned by {planner.source} -> {plan}")
         stage = "build"
         try:

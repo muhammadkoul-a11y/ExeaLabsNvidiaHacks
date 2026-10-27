@@ -299,6 +299,132 @@ def test_counter_pause_is_held_while_the_hand_is_close(twin):
     assert w.wait[0] < before
 
 
+def _held_by_the_arm(twin, track: bool, seconds: float = 30.0):
+    """One walker (seed 4) and the real arm reaching out level with joint 1 turned to point at them: once at the start
+    and then still (track False), or every step (track True). Main froze this walker for the whole run either way.
+    Returns the longest run of steps with the walker's position unchanged off a pause, how far they got from the
+    start, and the safety monitor."""
+    import math
+
+    from arrival.sim.safety import SafetyMonitor
+
+    base, dt = (2.6, 1.0, 0.75), 0.05
+    m = mujoco.MjModel.from_xml_string(build_mjcf(twin, base, n_people=1, people_seed=4))
+    d = mujoco.MjData(m)
+    w = Walkers(1, (0.4, 1.65, 3.6, 2.7), seed=4, base_xy=base[:2], front_y=0.75, fixtures=twin["fixtures"],
+                fridge_visit=False)
+    mon = SafetyMonitor(m)
+    adr = [m.jnt_qposadr[m.joint(f"joint{k}").id] for k in range(1, 8)]
+    q = np.array([0.0, 1.2, 0.0, -0.8, 0.0, 1.4, 0.0])
+    d.qpos[adr] = q
+    mujoco.mj_kinematics(m, d)
+    hand = d.xpos[m.body("hand").id][:2] - np.array(base[:2])
+    start, still, longest, far = w.pos[0].copy(), 0.0, 0.0, 0.0
+    for k in range(int(seconds / dt)):
+        if track or k == 0:
+            v = w.pos[0] - np.array(base[:2])
+            q[0] = math.atan2(v[1], v[0]) - math.atan2(hand[1], hand[0])
+            d.qpos[adr] = q
+            mujoco.mj_kinematics(m, d)
+        p0 = w.pos[0].copy()
+        w.step(m, d, dt, mon.yield_clearance(d))
+        mujoco.mj_kinematics(m, d)
+        mon.update(m, d)
+        still = still + dt if np.array_equal(p0, w.pos[0]) and w.wait[0] <= 0 else 0.0
+        longest = max(longest, still)
+        far = max(far, float(np.linalg.norm(w.pos[0] - start)))
+    return longest, far, mon
+
+
+def test_walker_held_by_a_still_arm_walks_away(twin):
+    from arrival.sim.people import PROGRESS, WAIT_MAX
+
+    longest, far, mon = _held_by_the_arm(twin, track=False)
+    assert longest <= WAIT_MAX + 1e-6 and far > PROGRESS
+    assert not mon.contact
+
+
+def test_walker_held_by_an_arm_pointing_at_them_walks_away(twin):
+    from arrival.sim.people import PROGRESS, WAIT_MAX
+
+    longest, far, mon = _held_by_the_arm(twin, track=True)
+    assert longest <= WAIT_MAX + 1e-6 and far > PROGRESS
+    assert not mon.contact
+
+def test_walking_away_never_steps_into_the_arm_links(twin):
+    """The arm reaching out at a seeded pose and turning at 0.5 rad/s to point at one of two walkers (seed 4), 60 s.
+    No step a walker takes brings them closer than the stop line to any robot geom, the links included, measured as
+    the safety monitor measures a contact (walking away, they used to step into link 5)."""
+    import math
+
+    from arrival.sim.people import WAIT_MAX
+    from arrival.sim.safety import YIELD, SafetyMonitor
+
+    base, dt = (2.6, 1.0, 0.75), 0.05
+    m = mujoco.MjModel.from_xml_string(build_mjcf(twin, base, n_people=2, people_seed=4))
+    d = mujoco.MjData(m)
+    w = Walkers(2, (0.4, 1.65, 3.6, 2.7), seed=4, base_xy=base[:2], front_y=0.75, fixtures=twin["fixtures"],
+                fridge_visit=False)
+    mon = SafetyMonitor(m)
+    rad = [r for _, r in mon.people]
+    adr = [m.jnt_qposadr[m.joint(f"joint{k}").id] for k in range(1, 8)]
+    lo, hi = m.jnt_range[m.joint("joint1").id]
+    rng = np.random.default_rng(7004)
+    for _ in range(4):  # the fourth of a seeded series of poses: one the walkers used to walk away into link 5 at
+        q = np.array([0.0, rng.uniform(0.9, 1.6), 0.0, rng.uniform(-1.2, -0.3), 0.0, rng.uniform(0.8, 2.0), 0.0])
+        rng.uniform(0, 2 * np.pi, 7)
+        rate = float(rng.choice([0.5, 1.0, 2.0]))
+    hand, b0 = m.body("hand").id, m.body("robot_base").id
+    still, longest, own = [0.0, 0.0], 0.0, []
+    for k in range(1200):
+        target = w.pos[(k // 400) % 2]
+        q0 = q.copy()
+        q0[0] = 0.0
+        d.qpos[adr] = q0
+        mujoco.mj_kinematics(m, d)
+        h = d.xpos[hand][:2] - d.xpos[b0][:2]
+        v = target - d.xpos[b0][:2]
+        err = (math.atan2(v[1], v[0]) - math.atan2(h[1], h[0]) - q[0] + math.pi) % (2 * math.pi) - math.pi
+        q[0] = np.clip(q[0] + np.clip(err, -rate * dt, rate * dt), lo, hi)
+        d.qpos[adr] = q
+        mujoco.mj_kinematics(m, d)
+        before = [(p.copy(), mon.clearance(d, p, rad[i])) for i, p in enumerate(w.pos)]
+        w.step(m, d, dt, mon.yield_clearance(d))
+        for i, (p0, c0) in enumerate(before):
+            c1 = mon.clearance(d, w.pos[i], rad[i])
+            if c1 < c0 - 1e-9:
+                own.append(c1)
+            still[i] = still[i] + dt if np.array_equal(p0, w.pos[i]) and w.wait[i] <= 0 else 0.0
+            longest = max(longest, still[i])
+    assert own and min(own) >= YIELD[0] - 1e-9
+    assert longest <= WAIT_MAX + 1e-6
+
+
+def test_counter_pause_hold_is_capped_even_when_the_hand_flickers_away(twin):
+    """A hand beside a walker at the counter stop that steps away for one step every second: the time held at the stop
+    adds up, so the walker leaves at most WAIT_MAX after the planned pause would have ended."""
+    from arrival.sim.people import PROGRESS, WAIT_MAX
+
+    w = Walkers(1, (0.4, 1.65, 3.6, 2.7), seed=3, base_xy=(2.6, 1.0), front_y=0.75, fixtures=twin["fixtures"],
+                fridge_visit=False)
+    m = mujoco.MjModel.from_xml_string(build_mjcf(twin, (2.6, 1.0, 0.75), n_people=1, people_seed=3))
+    d = mujoco.MjData(m)
+    for _ in range(2000):
+        w.step(m, d, 0.05)
+        if w.wait[0] > 0.5 and w.pauses[0][w.at[0]] > 0:
+            break
+    stop, left, r = w.pos[0].copy(), w.wait[0], w.specs[0]["torso_r"]
+    hand = stop + np.array([0.20 + 0.05 + r, 0.0])
+    t = 0.0
+    for k in range(1200):
+        away = k % 20 == 19
+        w.step(m, d, 0.05, lambda p, r_: 9.0 if away else float(np.linalg.norm(p - hand)) - 0.05 - r_)
+        t += 0.05
+        if np.linalg.norm(w.pos[0] - stop) >= PROGRESS:
+            break
+    assert t <= left + WAIT_MAX + 0.25, (t, left)  # plus the steps to get PROGRESS away
+
+
 def test_heads_and_arms_clear_wall_cabinets_and_the_fridge_door(twin):
     from arrival.sim.safety import overhead_clearance
 

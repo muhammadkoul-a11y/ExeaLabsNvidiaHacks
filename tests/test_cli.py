@@ -19,6 +19,24 @@ def test_sim_missing_room_is_usage_error(tmp_path, capsys):
     assert "no scan for room" in capsys.readouterr().err
 
 
+def test_sim_missing_room_lists_the_rooms_that_exist(tmp_path, capsys, monkeypatch):
+    pytest.importorskip("mujoco")
+    monkeypatch.chdir(tmp_path)  # resolve_scans falls back to the repo's scans/
+    assert cli.main(["sim", "--room", "hero_kitchn", "--episodes", "1", "--out", str(tmp_path)]) == cli.EXIT_USAGE
+    err = capsys.readouterr().err
+    assert "no scan for room 'hero_kitchn'" in err and "hero_kitchen" in err.split("'hero_kitchn'", 1)[1]
+
+
+def test_demo_names_the_fixture_folder_for_a_test_room(tmp_path, monkeypatch):
+    """rotated_kitchen and u_kitchen_42 live in tests/fixtures/scans; the error only said 'not found under scans'."""
+    monkeypatch.chdir(tmp_path)
+    with pytest.raises(SystemExit) as e:
+        cli.run_demo("rotated_kitchen", out_dir=tmp_path)
+    msg = str(e.value)
+    assert "room 'rotated_kitchen' not found under" in msg
+    assert "hero_kitchen" in msg and "--scans tests/fixtures/scans" in msg
+
+
 @pytest.mark.parametrize("flag", ["--people", "--seed"])
 def test_sim_negative_people_or_seed_is_a_usage_error_and_keeps_the_old_dataset(tmp_path, capsys, monkeypatch, flag):
     pytest.importorskip("mujoco")
@@ -76,7 +94,7 @@ def test_fanout_reports_invalid_merged_dataset(tmp_path, capsys, monkeypatch):
     monkeypatch.setattr("arrival.jobs.fanout.run_fanout",
                         lambda rec, cfg, out: {"dataset": str(tmp_path / "ds"), "ran": [0], "skipped": []})
     monkeypatch.setattr("arrival.export.validate.validate", lambda d: ["meta/info.json: missing"])
-    a = _ns(tmp_path, backend="local", run_id="r", shards=1)
+    a = _ns(tmp_path, room="hero_kitchen", backend="local", run_id="r", shards=1)
     assert cli.cmd_fanout(a) == cli.EXIT_INVALID
     assert "INVALID: meta/info.json: missing" in capsys.readouterr().err
 
@@ -202,7 +220,7 @@ def test_fanout_accepts_all_families(tmp_path, monkeypatch):
         return {"dataset": tmp_path, "ran": [0], "skipped": []}
     monkeypatch.setattr("arrival.jobs.fanout.run_fanout", fake_run)
     monkeypatch.setattr("arrival.export.validate.validate", lambda d: [])
-    ns = _ns(tmp_path, backend="local", run_id="r", shards=1, families="all")
+    ns = _ns(tmp_path, room="hero_kitchen", backend="local", run_id="r", shards=1, families="all")
     assert cli.cmd_fanout(ns) == cli.EXIT_OK
     assert seen == ["all"]
 

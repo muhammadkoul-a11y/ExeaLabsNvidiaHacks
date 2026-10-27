@@ -234,3 +234,20 @@ def test_inconsistent_report_counts_cannot_produce_throughput(tmp_path, attempts
     row, = cost.collect_rows(tmp_path)
     assert row["attempts"] is row["successes"] is None
     assert row["drop_rate"] is row["demos_per_hour"] is None
+
+
+@pytest.mark.parametrize("source", ["reports", "eval"])
+@pytest.mark.parametrize("family", [None, 3, []])
+def test_nonobject_report_family_is_a_cost_error(tmp_path, source, family):
+    path = _w(tmp_path / source / "bad.json", {"totals": {}, "families": {"open_drawer": family}})
+    with pytest.raises(cost.CostError, match="open_drawer") as error:
+        cost.collect_rows(tmp_path)
+    assert str(path) in str(error.value)
+
+
+def test_cost_cli_handles_nonobject_family_without_traceback(tmp_path, capsys):
+    _w(tmp_path / "reports" / "bad.json", {"families": {"open_drawer": None}})
+    assert cost.main(["--out", str(tmp_path), "--json"]) == 2
+    error = capsys.readouterr().out
+    assert "open_drawer" in error and "bad.json" in error
+    assert "Traceback" not in error

@@ -68,7 +68,7 @@ def _pieces(twin: dict) -> list[dict]:
     out = []
     for f in twin["fixtures"]:
         if f["type"] == "counter":
-            if f.get("island") or f.get("default_config_name") == "dining" or f["source_category"] == "synthesized":
+            if f.get("island") or f.get("default_config_name") == "dining" or f.get("source_category") == "synthesized":
                 continue
             out.append(f)
         elif f["type"] in BUILT_IN and f["size"][2] <= COUNTER_HEIGHT + BUILT_IN_HEIGHT_SLACK:

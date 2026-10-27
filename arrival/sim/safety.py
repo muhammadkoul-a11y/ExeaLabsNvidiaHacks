@@ -98,6 +98,23 @@ class SafetyMonitor:
             d = min(d, dist - self.radius[g] - r)
         return d
 
+    def clearance_many(self, data, pts, r: float) -> np.ndarray:
+        """`clearance` over all robot geoms for each of an (n, 2) array of person centres at once."""
+        pts = np.atleast_2d(pts)
+        d = np.full(len(pts), np.inf)
+        for g in self.geoms:
+            c = data.geom_xpos[g]
+            if self.capsule[g]:
+                axis = data.geom_xmat[g].reshape(3, 3)[:, 2] * self.half[g]
+                a, ab = (c - axis)[:2], 2 * axis[:2]
+                n = float(ab @ ab)
+                t = np.zeros(len(pts)) if n < 1e-12 else np.clip((pts - a) @ ab / n, 0.0, 1.0)
+                dist = np.linalg.norm(a + t[:, None] * ab - pts, axis=1)
+            else:
+                dist = np.linalg.norm(pts - c[:2], axis=1)
+            d = np.minimum(d, dist - self.radius[g] - r)
+        return d
+
     def yield_clearance(self, data):
         """Callable (xy, radius) -> clearance to the closest of the base, arm links, hand and fingers, for Walkers.step to yield on."""
         return lambda p, r: self.clearance(data, p, r, self.yield_geoms)

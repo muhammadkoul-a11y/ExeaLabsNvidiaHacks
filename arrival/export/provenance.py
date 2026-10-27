@@ -51,7 +51,14 @@ def _git(repo: str) -> tuple[str | None, bool | None]:
             return None
         return out.stdout.strip()
 
-    sha = run("rev-parse", "HEAD")
+    # git looks upward for a repository, so an installed wheel in a venv under some other project would get that
+    # project's HEAD: only a checkout whose top level is `repo` itself says anything about this code
+    top = run("rev-parse", "--show-toplevel")
+    try:
+        own = bool(top) and os.path.samefile(top, repo)
+    except OSError:
+        own = False
+    sha = run("rev-parse", "HEAD") if own else None
     if not sha:
         return None, None
     status = run("status", "--porcelain", "--untracked-files=no")

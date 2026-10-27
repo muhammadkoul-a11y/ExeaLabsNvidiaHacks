@@ -119,7 +119,8 @@ def test_no_drawer_or_door_task_where_the_base_cannot_stand():
 def test_corner_cabinet_door_stands_along_its_run_but_the_blocked_drawer_and_outside_fridge_stay_rejected():
     """u_kitchen_42's storage_b has the sink run on its stand spot: its door takes a spot 0.25 m along the run (the
     wide fallback grid) and opens in the sim; its drawer is pulled from in front of the sink, so it stays
-    rejected, and rotated_kitchen's fridge, whose free-edge side is outside the room, stays rejected too."""
+    rejected. rotated_kitchen's fridge is hinged on its corner side (inferred from the walls), so its free edge and
+    the stand spot beside it are in the room."""
     from arrival.sim.collect import SimEnv, run_episode
     from arrival.sim.policy import ScriptedExpert
     from arrival.sim.tasks import finish_task
@@ -142,5 +143,5 @@ def test_corner_cabinet_door_stands_along_its_run_but_the_blocked_drawer_and_out
         assert ep["success"], fam
     room = compile_twin(load_room("rotated_kitchen", SCANS))
     pre = {}
-    assert not make_tasks(room, ["open_fridge"], 4, seed=5, log=lambda *_: None, preflight=pre)
-    assert pre["families"] == ["open_fridge"] and "outside the room" in pre["reasons"][0]["reason"]
+    assert make_tasks(room, ["open_fridge"], 4, seed=5, log=lambda *_: None, preflight=pre)
+    assert pre["families"] == [] and pre["rejected"] == 0

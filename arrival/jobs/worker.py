@@ -702,7 +702,7 @@ def tree_rss(pid: int) -> int | None:
             for line in ps.stdout.splitlines():
                 p, pp, kb = line.split()
                 rows[int(p)] = (int(pp), int(kb) * 1024)
-    except (OSError, ValueError, subprocess.SubprocessError):
+    except (OSError, ValueError, IndexError, subprocess.SubprocessError):
         return None
     if pid not in rows:
         return None

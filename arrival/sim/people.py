@@ -9,7 +9,7 @@ import math
 import mujoco
 import numpy as np
 
-from arrival.sim.safety import yield_factor
+from arrival.sim.safety import YIELD, SafetyMonitor, yield_factor
 
 CLEAR = 0.6  # min distance (m) from the base column for any path segment: 0.12 pedestal + 0.17 torso + margin
 LANE = (0.5, 0.75)  # the crossing lane runs this far behind the base, closer than CLEAR on purpose
@@ -51,6 +51,10 @@ SLOW = 0.45  # the two short steps into and out of the doorway, as a share of wa
 LET_GO = 0.30  # radians: the hand pulls the bar this far, then lets go and the door swings on; past about 20 deg the
 # person is on the inner side of the panel while the bar is on the outer face, so an arm still on the bar would cross it
 CATCH = 0.25  # radians: closing, the hand pushes the inner face at the free edge down to here, then the door shuts itself
+WAIT_MAX = 4.0  # seconds a person near the robot may go without PROGRESS before they walk away from it
+PROGRESS = 0.10  # metres from where the progress clock last reset that count as having got somewhere
+AWAY = (120, 0.4)  # walking away: headings tried (3 deg apart), and how far (m)
+VISIT = ("open", "look", "close")
 
 
 def person_spec(seed: int, i: int) -> dict:
@@ -438,6 +442,10 @@ class Walkers:
             self.pauses.append(pause)
             self.faces.append(faces)
             self.slow.append(slow)
+        self.zones = [prints if self.visit and i == self.visit["person"] else avoid for i in range(n)]
+        self.box = [(min(floor[0], *(p[0] for p in path)), min(floor[1], *(p[1] for p in path)),
+                     max(floor[2], *(p[0] for p in path)), max(floor[3], *(p[1] for p in path)))
+                    for path in self.paths]  # the floor and the path, work frame: where a person walking away may go
         self._to_world(yaw)
         self.pos = [p[0].copy() for p in self.paths]
         self.idx = [1] * n
@@ -448,6 +456,14 @@ class Walkers:
         self.amp = [0.0] * n
         self.yaw = [0.0] * n
         self.reach = [None] * n  # (weight 0..1, world point) the right hand is going for
+        self.anchor = [p.copy() for p in self.pos]  # where the progress clock last reset
+        self.stuck = [0.0] * n  # seconds since then
+        self.detour = [[] for _ in range(n)]  # world points walked before the path target after walking away
+        self.away = [False] * n  # walking to the first detour point: the yield stop does not apply
+        self._robot = None  # SafetyMonitor for the room a walk-away keeps to every robot geom; built when first needed
+        self.drive = base_to is not None  # a base that drives waits for people itself (policy.STOP_CLEAR); people
+        # also keeping off its tucked arm stalled counter_to_counter past its step budget, so there only a walk-away
+        # keeps that room
         self.speed = speed
         self.door_q, self.door_max = 0.0, 0.0
         self.driven_geoms: set[int] = set()  # the door's geoms while a person holds it open
@@ -528,6 +544,55 @@ class Walkers:
         w = min(_smooth(t / REACH_T), _smooth((self.total[i] - t) / REACH_T)) * hold
         self.reach[i] = (w, target) if w > 0.0 else None
 
+    def _on_visit(self, i: int) -> bool:
+        """Person i is on a leg of the fridge trip, where walking away would leave the door mid-swing."""
+        if not self.visit or i != self.visit["person"]:
+            return False
+        k = self.idx[i] % len(self.paths[i])
+        return self.faces[i][k] in VISIT or self.faces[i][k - 1] in VISIT
+
+    def _room(self, model, data, clearance, i: int, pts) -> np.ndarray:
+        """Room person i standing at each of the (n, 2) points has from the robot while walking away: the least of
+        `clearance` and the clearance to every robot collision geom, measured as safety.SafetyMonitor measures a
+        human contact."""
+        if self._robot is None:
+            try:
+                self._robot = SafetyMonitor(model)
+            except KeyError:  # a model without the robot
+                self._robot = False
+        pts = np.atleast_2d(pts)
+        c = np.array([clearance(p, self.specs[i]["torso_r"]) for p in pts])
+        return np.minimum(c, self._robot.clearance_many(data, pts, self._robot.people[i][1])) if self._robot else c
+
+    def _walk_away(self, model, data, i: int, clearance, dt: float) -> bool:
+        """Send person i to the spot that gains most room (`_room`) among the points their walking steps land on along
+        AWAY[0] headings, out to AWAY[1]. The way there stays in the box of their floor and path, keeps clear of the
+        footprints their path was routed round from a tenth of the way out (a fixture or the box shortens the way, it
+        does not drop the heading), and lands on no point with less room than the stop line YIELD[0], or than they
+        have now if already inside it. From there they route back to the path target. False when no sampled point
+        gains room."""
+        r = 0.8 * self.specs[i]["radius"]
+        prints, (x0, y0, x1, y1) = self.zones[i], self.box[i]
+        a, here, best = self.M @ self.pos[i], float(self._room(model, data, clearance, i, self.pos[i])[0]), None
+        floor = min(here, YIELD[0]) - 1e-9
+        ts = np.arange(1, int(AWAY[1] / (self.speed * dt) + 1e-9) + 1) * self.speed * dt  # where the steps land
+        for h in np.linspace(0.0, 2 * math.pi, AWAY[0], endpoint=False):
+            q = a + ts[:, None] * np.array([math.cos(h), math.sin(h)])
+            inside = (q[:, 0] >= x0) & (q[:, 0] <= x1) & (q[:, 1] >= y0) & (q[:, 1] <= y1)
+            m = len(ts) if inside.all() else int(np.argmin(inside))
+            world = q[:m] @ self.M  # rows turned back by M.T
+            rooms = self._room(model, data, clearance, i, world) if m else []
+            for j in range(m):
+                if rooms[j] < floor or prints.segment_blocked(a + 0.1 * (q[j] - a), q[j], r):
+                    break
+                if rooms[j] - here > 1e-6 and (best is None or rooms[j] > best[0]):
+                    best = (rooms[j], world[j], q[j])
+        if best is None:
+            return False
+        via = route(best[2], self.M @ self.paths[i][self.idx[i] % len(self.paths[i])], prints, r, self.box[i]) or []
+        self.detour[i], self.away[i] = [best[1]] + [self.M.T @ v for v in via], True
+        return True
+
     def pose_limbs(self, model, i: int) -> None:
         """Write the limb capsules' body-frame pose for person i's current gait phase into the model."""
         if self._gids is None:
@@ -557,7 +622,17 @@ class Walkers:
         """`clearance(xy, radius)` is the walker's clearance to the closest of the robot base and arm-link
         bodies (safety.yield_clearance). A
         walker slows with it and stands still below safety.YIELD[0], then resumes; at a pause (the counter stop)
-        the timer is held while the robot is that close. None: nobody yields, as before."""
+        the timer is held while the robot is that close. No step of a walker's own takes their room to any robot
+        collision geom (`_room`, as safety measures a human contact) below YIELD[0], or lower if already below it;
+        such a step is not taken. With a base that drives (`base_to`) this holds for walk-away steps only. A
+        progress clock counts the time a walker walks without getting PROGRESS from where it last reset, and the
+        time a pause is held; a running pause neither counts nor resets it, PROGRESS and the fridge trip's legs reset
+        it. A pause is held only while the clock is under WAIT_MAX; at WAIT_MAX a walking person walks away
+        (`_walk_away`) at full speed, then back to the path. So off the fridge trip, standing still (held pauses
+        included, the running time of planned pauses not) since a walker last got PROGRESS adds up to at most
+        WAIT_MAX and one step, unless no sampled step gains room, or the robot comes in so that the step would lose
+        it: then they stay put and try again every step. Standing nearly still (small moves) is not bounded. None:
+        nobody yields, as before."""
         if self._gids is None:
             self._bind(model)
         out = []
@@ -638,18 +713,28 @@ class Walkers:
                                 hg = 1.0
                             give = min(give, hg)
 
+            held = False
             if self.wait[i] > 0:
                 tag = self.faces[i][self.at[i]]
-                if not (tag is None and give == 0.0):  # counter use pauses while the hand is at the walker's elbow
+                held = tag is None and give == 0.0  # counter use pauses while the hand is at the walker's elbow
+                if not (held and self.stuck[i] < WAIT_MAX - 1e-9):
                     self.wait[i] -= dt
                 if tag in ("open", "look", "close") and self.visit and tag != "look":
                     self._visit_step(i, tag)
                 yaw = self._pause_yaw(i)
             else:
+                if clearance and self.stuck[i] >= WAIT_MAX - 1e-9 and not self.away[i] and not self._on_visit(i):
+                    self._walk_away(model, data, i, clearance, dt)
+                reached = 1e-9 if self.away[i] else 0.05  # a walk-away step can be shorter than the arrival radius
+                while self.detour[i] and np.linalg.norm(self.detour[i][0] - self.pos[i]) < reached:
+                    reached = 0.05
+                    self.detour[i].pop(0)
+                    self.away[i] = False
                 k = self.idx[i] % len(path)
-                d = path[k] - self.pos[i]
+                d = (self.detour[i][0] if self.detour[i] else path[k]) - self.pos[i]
                 dist = float(np.linalg.norm(d))
-                if dist < 0.05:  # at a waypoint: pause there, or turn to the next one without breaking stride
+                at = dist < 0.05 and not self.detour[i]  # a walk-away point is not a waypoint
+                if at:  # at a waypoint: pause there, or turn to the next one without breaking stride
                     self.wait[i] = self.total[i] = self.pauses[i][k]
                     self.at[i] = k
                     self.idx[i] += 1
@@ -660,9 +745,26 @@ class Walkers:
                     v = self.speed * (SLOW if self.slow[i][nk] else 1.0)
                     if self.pauses[i][nk] > 0 and not self.slow[i][nk]:  # the slow fridge steps are planned for SLOW
                         v *= float(np.clip(dist / BRAKE[0], BRAKE[1], 1.0))
+                    if self.away[i]:
+                        v, give = self.speed, 1.0
+                    if clearance and (self.away[i] or not self.drive) and v * give > 0:  # no step of their own
+                        nxt = self.pos[i] + d / dist * min(dist, v * give * dt)
+                        now, nxt = self._room(model, data, clearance, i, [self.pos[i], nxt])
+                        if nxt < min(now, YIELD[0]) - 1e-9:  # below the stop line from any robot geom, or deeper
+                            give = 0.0
+                            if self.away[i]:
+                                self.away[i], self.detour[i] = False, []
                     moved = min(dist, v * give * dt)
                     self.pos[i] += d / dist * moved
                 yaw = self._pause_yaw(i) if self.wait[i] > 0 else np.arctan2(d[1], d[0])  # no one-frame spin on arrival
+            if held:
+                self.stuck[i] += dt
+            elif self.wait[i] > 0:
+                pass  # a hand stepping off for a moment cannot restart the clock
+            elif self._on_visit(i) or np.linalg.norm(self.pos[i] - self.anchor[i]) >= PROGRESS:
+                self.anchor[i], self.stuck[i] = self.pos[i].copy(), 0.0
+            else:
+                self.stuck[i] += dt
             self.yaw[i] = float(yaw)
             self.phase[i] += 2 * math.pi * moved / STRIDE
             target = min(1.0, moved / (self.speed * dt)) if moved > 0 else 0.0  # stride scaled to speed: a full stride at 45% speed puts the toe in the door swing

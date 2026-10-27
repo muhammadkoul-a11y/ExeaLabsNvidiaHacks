@@ -110,6 +110,30 @@ def test_sim_collect_with_vlm_planner(tmp_path, monkeypatch):
     assert report["attempts"] == 1
 
 
+def test_sim_collect_ignores_plan_for_another_family(tmp_path, monkeypatch):
+    # a live planner that reads "put the bowl in the sink" as wipe_counter names counter_b as the counter to wipe;
+    # taking that as the place target sent the bowl to the wrong fixture and the episode missed
+    pytest.importorskip("mujoco")
+    from arrival.scan.bundle import load_room
+    from arrival.sim.collect import collect
+    from arrival.twin.compile import compile_twin
+
+    twin = compile_twin(load_room("hero_kitchen", "scans"))
+    assert "counter_b" in [f["id"] for f in twin["fixtures"]]
+
+    def plan(self, instruction, objects, fixtures, research_context=None):
+        self.source = "token_factory"
+        return {"family": "wipe_counter", "object": None, "target": "counter_b"}
+
+    monkeypatch.setattr(VLMPlanner, "plan", plan)
+    logs = []
+    res = collect(twin=twin, families=["counter_to_sink"], episodes=1, out_dir=tmp_path, people=0, res=32,
+                  planner_name="vlm", log=logs.append)
+
+    assert any("keeping the task's" in line for line in logs)
+    assert res["report_data"]["successes"] == 1
+
+
 def test_instruction_fallback_not_cached_and_train_nonempty(tmp_path, monkeypatch):
     import arrival.models.token_factory as tf
 

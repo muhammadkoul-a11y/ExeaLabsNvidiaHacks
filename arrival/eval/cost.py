@@ -144,6 +144,8 @@ def collect_rows(out_dir: str | Path) -> list[dict]:
         fams = r.get("families")
         if isinstance(fams, dict):  # sim reports: per-family counts, with optional per-family seconds
             for fam, f in fams.items():
+                if not isinstance(f, dict):
+                    raise CostError(f"report {p}: family {fam!r} must be an object")
                 rows.append(_row("report", room, fam, f.get("attempts"), f.get("successes"), f.get("seconds"), f.get("human_contacts")))
     for p in sorted(list((out / "eval").glob("*.json")) + list((out / "eval").glob("*/report.json"))):
         r = _load(p, "report")
@@ -152,6 +154,8 @@ def collect_rows(out_dir: str | Path) -> list[dict]:
         room = r.get("room_id", p.stem)
         start = len(rows)
         for fam, f in (r.get("families") or {}).items():
+            if not isinstance(f, dict):
+                raise CostError(f"report {p}: family {fam!r} must be an object")
             n = f.get("episodes")
             wall = f.get("mean_wall_seconds")
             rows.append(_row("eval", room, fam, n, f.get("successes"),

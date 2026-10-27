@@ -76,3 +76,28 @@ def test_dataset_episodes_jsonl_is_refused_not_a_traceback(tmp_path, capsys):
         compare(meta, meta)
     assert cli.main(["eval-compare", str(meta), str(meta)]) == cli.EXIT_USAGE
     assert "trial_index" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("duplicate_in", ["a", "b", "both"])
+def test_compare_refuses_duplicate_trials(tmp_path, duplicate_in):
+    a = write_run(tmp_path / "a", [True, False])
+    b = write_run(tmp_path / "b", [False, True])
+    for name, run in (("a", a), ("b", b)):
+        if duplicate_in in (name, "both"):
+            path = run / "episodes.jsonl"
+            text = path.read_text()
+            path.write_text(text + text.splitlines()[0] + "\n")
+    with pytest.raises(CompareError, match="duplicate trial"):
+        compare(a, b)
+
+
+@pytest.mark.parametrize("index", ["0", 0.0, True, -1, None, []])
+def test_compare_requires_integer_trial_identity(tmp_path, index):
+    a = write_run(tmp_path / "a", [True, False])
+    b = write_run(tmp_path / "b", [False, True])
+    path = a / "episodes.jsonl"
+    rows = [json.loads(line) for line in path.read_text().splitlines()]
+    rows[0]["trial_index"] = index
+    path.write_text("\n".join(json.dumps(row) for row in rows) + "\n")
+    with pytest.raises(CompareError, match="trial_index"):
+        compare(a, b)

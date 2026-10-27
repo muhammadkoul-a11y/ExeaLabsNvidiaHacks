@@ -161,6 +161,57 @@ def is_island(fixture: dict, walls: list[dict]) -> bool:
             and bool(walls) and wall_distance(fixture, walls) > ISLAND_CLEARANCE)
 
 
+FRIDGE_FRONT_BAND = 0.9  # m in front of a fridge where its door swings and the robot stands beside the free edge
+FRIDGE_HINGE_MARGIN = 0.05  # m: the hinge goes right only when that side has this much less room than the left
+
+
+def _front_side_room(f: dict, fixtures: list[dict], walls: list[dict], step: float = 0.02) -> tuple[float, float]:
+    """(left, right): free floor beside a fixture's left and right edges (local -x and +x) in the band
+    FRIDGE_FRONT_BAND deep in front of its face, up to the nearest wall face or other fixture there. A neighbour
+    flush with the face (the same run) is behind the band and does not count; a wall at the room's corner does."""
+    sx, sy = f["size"][0], f["size"][1]
+    room = [math.inf, math.inf]
+
+    def hit(lx: float, ly: float, pad: float = 0.0) -> None:
+        if not sy / 2 <= ly <= sy / 2 + FRIDGE_FRONT_BAND:
+            return
+        if lx <= -sx / 2:
+            room[0] = min(room[0], max(0.0, -sx / 2 - lx - pad))
+        elif lx >= sx / 2:
+            room[1] = min(room[1], max(0.0, lx - sx / 2 - pad))
+
+    for w in walls:
+        (x0, y0), (x1, y1) = w["start"], w["end"]
+        n = max(1, math.ceil(math.hypot(x1 - x0, y1 - y0) / step))
+        for i in range(n + 1):
+            hit(*to_local((x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n), f), w.get("thickness", 0.0) / 2)
+    for g in fixtures:
+        if g["id"] == f["id"] or g["type"] == "sink":
+            continue
+        hx, hy = g["size"][0] / 2, g["size"][1] / 2
+        co, si = math.cos(g.get("yaw", 0.0)), math.sin(g.get("yaw", 0.0))
+        pts = [to_local((g["position"][0] + co * dx - si * dy, g["position"][1] + si * dx + co * dy), f)
+               for dx in (-hx, hx) for dy in (-hy, hy)]
+        ax0, ax1 = min(p[0] for p in pts), max(p[0] for p in pts)
+        ay0, ay1 = min(p[1] for p in pts), max(p[1] for p in pts)
+        if ay1 <= sy / 2 or ay0 >= sy / 2 + FRIDGE_FRONT_BAND:
+            continue  # flush with the fridge's face or behind it, or beyond the band
+        if ax1 <= -sx / 2:
+            hit(ax1, sy / 2)
+        elif ax0 >= sx / 2:
+            hit(ax0, sy / 2)
+    return room[0], room[1]
+
+
+def fridge_hinge(f: dict, fixtures: list[dict], walls: list[dict]) -> str:
+    """Hinge side for a fridge whose scan does not give one: the side with less room in front of it, so the door
+    opens away from the wall or cabinet beside it and its free edge, where the robot stands, faces the open room.
+    rotated_kitchen's fridge stands with its right side in the room's corner: hinged left (the old default for
+    every scan) the stand spot beside its free edge fell outside the room and open_fridge was never run."""
+    left, right = _front_side_room(f, fixtures, walls)
+    return "right" if right + FRIDGE_HINGE_MARGIN < left else "left"
+
+
 def compile_twin(bundle: dict) -> dict:
     walls = [dict(w) for w in bundle.get("walls", [])]
     fixtures = []
@@ -182,6 +233,14 @@ def compile_twin(bundle: dict) -> dict:
                 fx["default_config_name"] = cfg
         fixtures.append(fx)
     fixtures += _synth_counters(fixtures)
+    given = {f["id"]: f.get("hinge") for f in bundle.get("fixtures", [])}
+    for fx in fixtures:
+        if not fx["type"].startswith("fridge"):
+            continue
+        if given.get(fx["id"]) in ("left", "right"):
+            fx["hinge"] = given[fx["id"]]
+        elif fridge_hinge(fx, fixtures, walls) == "right":  # left is the default and stays unwritten
+            fx["hinge"], fx["hinge_source"] = "right", "inferred_from_walls"
     objects = [
         {
             "id": o["id"],

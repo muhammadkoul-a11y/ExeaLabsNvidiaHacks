@@ -133,3 +133,14 @@ def test_env_example_lists_every_job_limit():
     text = (REPO / ".env.example").read_text()
     for var, _ in limits.ENV.values():
         assert re.search(rf"^#? ?{var}=", text, re.M), var
+
+
+@pytest.mark.parametrize(("outer", "value"), [
+    ('"', "ends-with-apostrophe'"),
+    ("'", 'ends-with-double-quote"'),
+    ('"', "'nested-single-quotes'"),
+    ("'", '"nested-double-quotes"'),
+])
+def test_dotenv_removes_only_one_matching_quote_pair(clean_env, outer, value):
+    (clean_env / ".env").write_text(f"COSMOS_URL={outer}{value}{outer}\n")
+    assert config.get("COSMOS_URL") == value

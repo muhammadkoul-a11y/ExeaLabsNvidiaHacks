@@ -153,7 +153,7 @@ Keys go in an untracked `.env` (see `.env.example`); `python -m arrival doctor` 
 | Robot: counter → counter | ✅ With `--base mobile` (L13): the pedestal drives along the counter front at 0.3 m/s and sets the object down 2 m away, 6/6 with two people walking in the hero kitchen. The default base is still fixed, and skips the family |
 | Robot: close drawer, close door, put mug in drawer, wipe counter | ✅ 100% each (32/32 across all families, seed 5, two people walking). The part starts open for the close tasks; the sponge must travel 0.4 m pressed to the top |
 | Robot: bowl | ✅ Held by the rim (one finger inside the wall). 4/4 bowl → sink. The bowl is now hollow in physics |
-| GR00T-format dataset + validator | ✅ Passes our validator, and the layout matches GR00T's loader source. ⚠️ Not yet loaded by GR00T itself since the latest fixes |
+| GR00T-format dataset + validator | ✅ Passes our validator, and loads in Isaac-GR00T's own `LeRobotEpisodeLoader` (`dac54b3`, Oct 27, on main `03690dd`): the fixed-arm, mobile-base and three-camera datasets at 224 px, every episode, decoded video, finite state and action, an instruction per row; GR00T's `stats.py` writes their stats (`scripts/check_gr00t_loader.py`, [docs/results/gr00t-loader-2026-10-27](docs/results/gr00t-loader-2026-10-27/README.md)). No fine-tune has run on a dataset this new |
 | Local web page: browse, download, upload | ✅ Works. Redesigned page: room cards with previews and stats, drag-and-drop upload, live job stages. Uploads are processed by `python -m arrival work` on the same machine (twin, sim dataset, zip); a killed worker's jobs are requeued. The static demo page is live at https://arrival.exealabs.org and was checked in a browser at 1024 px and 375 px (#195). ⚠️ The upload-to-dataset page is not hosted, and the Nebius fan-out has not run for real |
 | VLM planner (Nemotron) / VLA client (GR00T server) | ✅ VLM planner (Nemotron) wired into sim collection with Token Factory and offline cache fixture (POL-1); dynamic instruction generation with held-out eval set (POL-2). ⚠️ VLA client tested offline |
 | GR00T N1.7 fine-tune and paired evaluation | ✅ Fine-tunes of GR00T N1.7-3B on `hero_kitchen_sim` ran on one 96 GB GPU on Cosmos (not Nebius) and were scored in the sim on identical trials (`docs/07-eval.md`, "Results so far"). Best so far 39 of 48 trials (81%) against 26 of 48 for the clean-data baseline (paired sign test p = 0.007): clean data plus DART demos with the marginal drawer pulls removed. ⚠️ Small samples; the generic-RoboCasa and base-GR00T cells of the usefulness protocol (DAT-3) are not run, so `usefulness` stays `null` |
@@ -333,11 +333,11 @@ Nebius x NVIDIA Global AI Hackathon, https://nebiusglobalaihackathon.devpost.com
 - GR00T trains on our datasets (three fine-tunes, `docs/07-eval.md`), but every score is from 24 to 48 paired trials and the same checkpoint has scored 2 of 12 and 7 of 12 on the same 12 trials: only large paired differences mean anything.
 - The mobile base (L13) is behind `--base mobile` and the real Franka behind `--arm menagerie`; the defaults are still the fixed Panda-style arm. The Menagerie arm was measured over all families only at seed 5 with no people.
 - A 28-episode run at 64 px after the door joint-limit fix (#152) succeeds 28 of 28 with 0 episodes flagged by the quality check. It was not rerun at 224 px.
-- With a fixed base, drawers and `close_door` on the U-kitchen's corner cabinet and the rotated kitchen's fridge stay unreachable and are skipped. Only the corner cabinet's `open_door` takes a shifted stand spot. The reach planner checks the arm's IK, not collisions.
+- With a fixed base, drawers and `close_door` on the U-kitchen's corner cabinet stay unreachable and are skipped. The rotated kitchen's fridge, whose right side is in the room's corner, is hinged on that side since the hinge is inferred from the walls (`hinge_source: inferred_from_walls`), and opens. Only the corner cabinet's `open_door` takes a shifted stand spot. The reach planner checks the arm's IK, not collisions.
 - With `--base mobile`, walker yield still ignores the arm links.
 - The job memory limit (`ARRIVAL_MAX_JOB_MB`) counts resident memory across the process tree (`/proc` on Linux, `Toolhelp32`/`psapi` on Windows, `ps` on macOS; `docs/ref/MEMCAP.md`).
 - The static demo page is live at https://arrival.exealabs.org and was checked in a browser at desktop and phone width (#195). The upload page's buttons were checked in headless Chromium; it is not hosted. Uploads are processed by local workers that share one `out/` folder.
-- One real kitchen, scanned with the capture app on an iPhone 13 Pro Max, has run end to end (`tests/fixtures/roomplan/kitchen_real_01.json`: 12 tasks over 11 families, 9 of 12 episodes, valid). It has no tape measurements yet, and GR00T has not trained on it; the GR00T scores above are from the authored hero kitchen. The three measured, consented scans (P2) are not done.
+- One real kitchen, scanned with the capture app on an iPhone 13 Pro Max, has run end to end (`tests/fixtures/roomplan/kitchen_real_01.json`: 12 tasks over 11 families, 9 of 12 episodes, valid). With every family at 12 episodes (seed 0, no people) it was 6 of 12 on Oct 26, every cabinet door failing, and is 12 of 12 since the blind-corner and narrow-cabinet layout fix (`docs/BUILD-LOG.md`). It has no tape measurements yet, and GR00T has not trained on it; the GR00T scores above are from the authored hero kitchen. The three measured, consented scans (P2) are not done.
 - `tests/fixtures/roomplan/office.json` and `study.json` are clean authored test fixtures under Apache 2.0 (P5, #310). Real phone captures with doors and windows remain open under P5 to validate placement against real-device sensor noise.
 
 
@@ -373,7 +373,7 @@ Fine-tune GR00T N1.7, score in the twin   docs/GR00T-FINETUNE.md, docs/07-eval.m
 | `arrival/tasks/` | Task and variation proposer |
 | `arrival/sim/` | MuJoCo scene, robot, IK, people, policies, data collection |
 | `arrival/export/` | LeRobot v2 writer and validator |
-| `arrival/generate/`, `arrival/render/` | Scripted placeholder generator, schematic renderer, MimicGen and splat stubs |
+| `arrival/generate/`, `arrival/render/` | Scripted placeholder, physics seed replay and native SE(3) retargeting; external MimicGen and splat stubs |
 | `arrival/models/` | Nebius Token Factory (Nemotron) client |
 | `arrival/web/`, `arrival/jobs/` | Local web page and upload queue |
 | `scans/` | Sample rooms |
@@ -457,7 +457,7 @@ LiDAR iPhones/iPads: iPhone 12 Pro or newer Pro models, or iPad Pro 2020+.
 - **DAT-1: GR00T modality config.** Write the config for our 7+1 embodiment, then confirm GR00T's real data loader reads `out/datasets/hero_kitchen_sim`.
 - **DAT-2: Fine-tune smoke test.** Run a 100-step GR00T N1.7 fine-tune on the sim dataset, then a full run. The command is in `docs/REFERENCE.md`.
 - **DAT-3: Evaluation.** Compare base GR00T, GR00T fine-tuned on generic RoboCasa data, and GR00T fine-tuned on our room. Use 50 episodes per cell on held-out poses and wordings, following the protocol in `docs/07-eval.md`.
-- **DAT-4: MimicGen / scale.** Generate thousands of physics demos per room from a few seeds, and track success and throughput.
+- **DAT-4: MimicGen / scale.** Generate thousands of physics demos per room from a few seeds, and track success and throughput. A native same-object SE(3) prototype now retargets recorded `counter_to_sink` rollouts with physics checks (`arrival/generate/se3_retarget.py`); upstream MimicGen integration and the 100-episode seed-set benchmark remain open (G7, issue #62).
 
 ### OPS: Nebius scale & backend (2)
 

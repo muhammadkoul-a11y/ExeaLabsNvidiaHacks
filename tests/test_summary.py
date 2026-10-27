@@ -27,6 +27,13 @@ def test_resolve_room_by_name_and_by_path():
         summary.resolve_room("nope.json", SCANS)
 
 
+def test_missing_room_message_lists_the_rooms_under_scans():
+    with pytest.raises(FileNotFoundError, match="hero_kitchen"):
+        summary.resolve_room("hero_kitchn", SCANS)
+    with pytest.raises(FileNotFoundError, match="--scans tests/fixtures/scans"):
+        summary.resolve_room("u_kitchen_42", SCANS)
+
+
 
 def test_generic_scan_file_names_take_the_folder_name():
     # two rooms given as scan.json files were both "scan", and their datasets shared scan_sim

@@ -38,9 +38,9 @@ def test_request_has_both_video_keys_and_split_state():
     assert np.allclose(req["state"], STATE) and set(req["video"]) == {"ego_view", "wrist"}
 
 
-def test_request_without_wrist_camera_sends_ego_only():
-    body = encode_request(_obs(wrist=False), "x")
-    assert "video.ego_view" in body and "video.wrist" not in body
+def test_request_without_wrist_camera_is_refused():
+    with pytest.raises(ProtocolError, match="obs has no wrist frame"):  # decode_request would answer it with a 400
+        encode_request(_obs(wrist=False), "x")
 
 
 @pytest.mark.parametrize("bad", [

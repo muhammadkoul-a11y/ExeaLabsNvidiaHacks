@@ -58,6 +58,44 @@ FALLBACK_TEMPLATES = {
         "Unlatch and swing the cabinet door open.",
         "Pull open the door to reveal the cabinet interior.",
     ],
+    # the families below have the sim's own four wordings (arrival.sim.tasks.SIM_WORDINGS), so the last one, the
+    # template path's held-out wording, is the eval split here too
+    "close_drawer": [
+        "Close the drawer.",
+        "Push the open drawer of the {name} shut.",
+        "Slide the drawer closed.",
+        "Push the drawer on the {name} back in.",
+    ],
+    "close_door": [
+        "Close the cabinet door.",
+        "Push the {name} cabinet door shut.",
+        "Swing the open door closed.",
+        "Shut the cabinet door on the {name}.",
+    ],
+    "put_in_drawer": [
+        "Put the {name} in the open drawer.",
+        "Place the {name} into the drawer.",
+        "Move the {name} from the counter into the drawer.",
+        "Store the {name} in the drawer.",
+    ],
+    "wipe_counter": [
+        "Wipe the counter with the {name}.",
+        "Clean the counter top with the {name}.",
+        "Scrub the counter using the {name}.",
+        "Use the {name} to wipe down the counter.",
+    ],
+    "open_fridge": [
+        "Open the fridge.",
+        "Pull the {name} door open.",
+        "Swing the fridge door open.",
+        "Get the fridge open.",
+    ],
+    "move_on_table": [
+        "Move the {name} further along the table.",
+        "Pick up the {name} and set it down along the table.",
+        "Shift the {name} to another spot on the table.",
+        "Reposition the {name} on the table.",
+    ],
     "open_oven": [
         "Open the oven.",
         "Pull the oven door down.",

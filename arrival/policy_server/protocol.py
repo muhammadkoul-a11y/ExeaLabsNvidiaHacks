@@ -60,7 +60,9 @@ def decode_image(s: str) -> np.ndarray:
 
 
 def encode_request(obs: dict, instruction: str, schema: str = "arm") -> dict:
-    """obs has 'state' (8 or 11 floats) and one frame per camera; the wrist frame is sent whenever the env has it.
+    """obs has 'state' (8 or 11 floats) and an HxWx3 uint8 frame for each camera in VIDEO_KEYS. Both cameras are
+    required, as decode_request and every modality config in configs/gr00t expect them, so a missing one is a
+    ProtocolError here rather than a 400 from the server.
     schema "arm" sends the first 8 state floats (an 11-float sim state loses its base columns); "mobile" needs 11."""
     if not isinstance(instruction, str) or not instruction.strip():
         raise ProtocolError("instruction must be a non-empty string")
@@ -74,11 +76,11 @@ def encode_request(obs: dict, instruction: str, schema: str = "arm") -> dict:
     if not np.isfinite(state).all():
         raise ProtocolError("state has non-finite values")
     for k in VIDEO_KEYS:
-        if k in obs and (np.ndim(obs[k]) != 3 or np.shape(obs[k])[-1] != 3):
+        if k not in obs:
+            raise ProtocolError(f"obs has no {k} frame; the policy server needs {' and '.join(VIDEO_KEYS)}")
+        if np.ndim(obs[k]) != 3 or np.shape(obs[k])[-1] != 3:
             raise ProtocolError(f"{k} frame must be HxWx3, got shape {list(np.shape(obs[k]))}")
-    body = {f"video.{k}": encode_image(obs[k]) for k in VIDEO_KEYS if k in obs}
-    if "video.ego_view" not in body:
-        raise ProtocolError("obs has no ego_view frame")
+    body = {f"video.{k}": encode_image(obs[k]) for k in VIDEO_KEYS}
     body["state.single_arm"] = state[:ARM_DOF].tolist()
     body["state.gripper"] = state[ARM_DOF:ARM_DOF + 1].tolist()
     if schema == "mobile":

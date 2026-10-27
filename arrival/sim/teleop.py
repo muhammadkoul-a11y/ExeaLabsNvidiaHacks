@@ -403,7 +403,7 @@ class TeleopWindow:
 def main(argv=None) -> int:
     import argparse
 
-    from arrival.scan.bundle import load_room
+    from arrival.scan.bundle import load_room, rooms_hint
     from arrival.twin.compile import compile_twin
 
     ap = argparse.ArgumentParser(description="Timed keyboard teleop in the twin -> out/teleop_baseline.json",
@@ -433,7 +433,7 @@ def main(argv=None) -> int:
     try:
         bundle = load_room(a.room, a.scans)
     except FileNotFoundError:
-        ap.error(f"no scan for room {a.room!r} under {a.scans}")
+        ap.error(f"no scan for room {a.room!r} under {a.scans} ({rooms_hint(a.room, a.scans)})")
     twin = compile_twin(bundle)
     print(HELP, flush=True)
     kw = dict(people=a.people, seed=a.seed, res=a.res, record=a.record)

@@ -119,3 +119,48 @@ def test_a_fridge_on_a_side_wall_opens():
     u = compile_twin(load_room("u_kitchen_42", "tests/fixtures/scans"))
     angle, run = _door_angle(u, 0)
     assert angle > 75.0 and run <= LIMIT_STEPS - 5, (angle, run)
+
+
+# ---- hinge side inferred from the walls when the scan does not give one ----
+
+def _fridge(twin):
+    return next(f for f in twin["fixtures"] if f["type"].startswith("fridge"))
+
+
+def test_a_fridge_with_its_right_side_in_the_corner_is_hinged_right():
+    # rotated_kitchen's fridge has 6.5 cm of floor in front of its right side (the room's corner) and 2 m on its left
+    from arrival.twin.compile import _front_side_room
+
+    twin = compile_twin(load_room("rotated_kitchen", "tests/fixtures/scans"))
+    f = _fridge(twin)
+    left, right = _front_side_room(f, twin["fixtures"], twin["walls"])
+    assert right < 0.1 < 2.0 < left
+    assert (f["hinge"], f["hinge_source"]) == ("right", "inferred_from_walls")
+
+
+@pytest.mark.parametrize("room,scans", [("hero_kitchen", "scans"), ("u_kitchen_42", "tests/fixtures/scans")])
+def test_a_fridge_with_its_left_side_against_a_wall_keeps_the_default(room, scans):
+    # left is the default and stays unwritten, so these twins (and their scenes) are unchanged
+    f = _fridge(compile_twin(load_room(room, scans)))
+    assert "hinge" not in f and "hinge_source" not in f
+
+
+def test_a_hinge_given_by_the_scan_wins_over_the_walls():
+    import json
+    from pathlib import Path
+
+    from arrival.scan.bundle import validate
+
+    scan = json.loads(Path("tests/fixtures/scans/rotated_kitchen/scan.json").read_text())
+    next(f for f in scan["fixtures"] if f["id"] == "fridge_w")["hinge"] = "left"
+    f = _fridge(compile_twin(validate(scan)))
+    assert f["hinge"] == "left" and "hinge_source" not in f
+
+
+@pytest.mark.parametrize("people,seed", [(0, 5), (2, 3)])
+def test_expert_opens_the_fridge_in_the_corner(tmp_path, people, seed):
+    # before: the stand spot beside the left-hinged door's free edge was outside the room, so open_fridge never ran
+    twin = compile_twin(load_room("rotated_kitchen", "tests/fixtures/scans"))
+    r = _summary(twin, ["open_fridge"], 2, people, seed, tmp_path)
+    assert (r["attempts"], r["successes"], r["skipped_unreachable"]) == (2, 2, 0)
+    assert r["human_contacts"] == 0 and r["door_contacts"] == 0

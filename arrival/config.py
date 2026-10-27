@@ -85,7 +85,9 @@ def load_dotenv(paths: list[Path] | None = None) -> None:
             if not line or line.startswith("#") or "=" not in line:
                 continue
             key, value = line.removeprefix("export ").split("=", 1)
-            key, value = key.strip(), value.strip().strip("'\"")
+            key, value = key.strip(), value.strip()
+            if len(value) >= 2 and value[0] == value[-1] and value[0] in "'\"":
+                value = value[1:-1]
             if key and key not in os.environ:
                 os.environ[key] = value
 

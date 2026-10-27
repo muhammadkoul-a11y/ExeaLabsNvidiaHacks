@@ -28,6 +28,15 @@ struct Spec: Decodable {
 }
 
 let args = CommandLine.arguments
+if args.count == 4, args[1] == "zip" {
+    do {
+        try ZipWriter.zip(folder: URL(fileURLWithPath: args[2]), to: URL(fileURLWithPath: args[3]))
+        exit(0)
+    } catch {
+        FileHandle.standardError.write(Data("bundle_check: \(error.localizedDescription)\n".utf8))
+        exit(1)
+    }
+}
 if args.count == 6, args[1] == "multipart" {
     do {
         try ArrivalAPI.writeMultipart([

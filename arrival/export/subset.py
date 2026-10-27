@@ -52,6 +52,8 @@ def subset_dataset(src: str | Path, out_dir: str | Path = "out", families: list[
         raise SubsetError(f"the rule keeps none of the {len(rows)} episodes")
     room, fps = info["arrival_room_id"], info["fps"]
     cams = [k.removeprefix("observation.images.") for k, v in info["features"].items() if v.get("dtype") == "video"]
+    if not cams:
+        raise SubsetError(f"{root} has no video features; subset requires at least one camera")
     res = info["features"][f"observation.images.{cams[0]}"]["shape"][0]
     embodiment = json.loads((meta / "embodiment.json").read_text())
     out_root = Path(out_dir) / "datasets" / f"{room}_sim"

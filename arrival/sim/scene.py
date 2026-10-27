@@ -89,6 +89,16 @@ def _host_of(s: dict, fixtures: list[dict]) -> dict | None:
     return next((f for f in fixtures if is_counter_host(f) and _sinks_in(f, [s])), None)
 
 
+def _footprint_box(f: dict, c: dict) -> tuple[float, float, float, float]:
+    """(x0, x1, y0, y1): the bounding box of fixture f's footprint in counter c's local frame."""
+    hx, hy = f["size"][0] / 2, f["size"][1] / 2
+    yaw = f.get("yaw", 0.0)
+    co, si = math.cos(yaw), math.sin(yaw)
+    pts = [to_local((f["position"][0] + co * dx - si * dy, f["position"][1] + si * dx + co * dy), c)
+           for dx in (-hx, hx) for dy in (-hy, hy)]
+    return min(p[0] for p in pts), max(p[0] for p in pts), min(p[1] for p in pts), max(p[1] for p in pts)
+
+
 def _span(c: dict, fixtures: list[dict]) -> tuple[float, float]:
     """Local x-extent of a counter, trimmed at an end that runs into a fridge/stove footprint.
     Appliances wholly inside the span are left alone (the twin data should not place them there; TWN-6)."""
@@ -97,13 +107,7 @@ def _span(c: dict, fixtures: list[dict]) -> tuple[float, float]:
     for f in fixtures:
         if not f["type"].startswith(APPLIANCES):
             continue
-        hx, hy = f["size"][0] / 2, f["size"][1] / 2
-        yaw = f.get("yaw", 0.0)
-        co, si = math.cos(yaw), math.sin(yaw)
-        pts = [to_local((f["position"][0] + co * dx - si * dy, f["position"][1] + si * dx + co * dy), c)
-               for dx in (-hx, hx) for dy in (-hy, hy)]
-        ax0, ax1 = min(p[0] for p in pts), max(p[0] for p in pts)
-        ay0, ay1 = min(p[1] for p in pts), max(p[1] for p in pts)
+        ax0, ax1, ay0, ay1 = _footprint_box(f, c)
         if ay1 <= -sy / 2 or ay0 >= sy / 2:
             continue
         if ax0 <= x0 < ax1:
@@ -113,9 +117,52 @@ def _span(c: dict, fixtures: list[dict]) -> tuple[float, float]:
     return x0, x1
 
 
+FRONT_COVER = 0.05  # m: a fixture standing within this of a cabinet's front face covers that part of it
+FRONT_END = 0.02  # m: a cover reaching this close to an end of the front covers it to that end
+MIN_DOOR_W = 0.30  # narrowest cabinet door drawn; a cabinet too narrow for one beside the drawers gets no drawers
+
+
+def front_span(c: dict, fixtures: list[dict]) -> tuple[float, float]:
+    """Local x-extent of a cabinet's front that no other fixture stands against. Where two runs meet in a corner,
+    the cabinet on the other wall stands against the end of this one's front, and that blind part can hold no door
+    or drawer: kitchen_real_01's corner cabinet drew its door there, and the neighbour stopped it at 0.8 deg."""
+    sx, sy = c["size"][0], c["size"][1]
+    x0, x1 = -sx / 2, sx / 2
+    for f in fixtures:
+        if f["id"] == c["id"]:
+            continue
+        ax0, ax1, ay0, ay1 = _footprint_box(f, c)
+        if ay1 <= sy / 2 + 0.01 or ay0 >= sy / 2 + FRONT_COVER:
+            continue  # flush with the front (the same run), behind it, or clear of it
+        lo, hi = max(ax0, x0), min(ax1, x1)
+        if hi - lo <= 0.01:
+            continue
+        # a scanned neighbour stops a hair short of the shared end (kitchen_real_01: 1e-4 m), so "at the end" is
+        # within FRONT_END of it; a cover in the middle of the front is left alone
+        if lo <= x0 + FRONT_END:
+            x0 = hi
+        elif hi >= x1 - FRONT_END:
+            x1 = lo
+    return x0, x1
+
+
+def drawers_at_right(c: dict, fixtures: list[dict]) -> bool:
+    """True when a blind corner takes the right end of the front, where the door's hinge would go. A door hinged
+    beside the neighbouring run turns its handle side into it: on kitchen_real_01's corner cabinet the hand met the
+    neighbour with the door at 59 deg. The drawer stack then takes that end and the door the open left end, still
+    hinged on its right edge, so it swings away from the corner."""
+    x0, x1 = front_span(c, fixtures)
+    sx = c["size"][0]
+    return x1 < sx / 2 - 1e-6 and x0 <= -sx / 2 + 1e-6
+
+
 def drawer_x(c: dict, fixtures: list[dict]) -> float:
     """Local x of the drawer stack: left quarter, or the middle if a fridge/stove in the same run overlaps the
-    left quarter. Judged in the counter's frame, so a run on any wall gets the same layout."""
+    left quarter. Judged in the counter's frame, so a run on any wall gets the same layout. The stack stays on the
+    open front (front_span), against a blind corner at its right end (drawers_at_right)."""
+    x0, x1 = front_span(c, fixtures)
+    if drawers_at_right(c, fixtures):
+        return x1 - DRAWER_W / 2
     x = -c["size"][0] / 4
     for f in fixtures:
         if not f["type"].startswith(APPLIANCES):
@@ -126,11 +173,35 @@ def drawer_x(c: dict, fixtures: list[dict]) -> float:
         if abs(ly) > (c["size"][1] + si * f["size"][0] + co * f["size"][1]) / 2:
             continue  # across the room, not in this run
         if abs(lx - x) < (co * f["size"][0] + si * f["size"][1]) / 2 + DRAWER_W / 2:
-            return 0.0
-    return x
+            x = 0.0
+            break
+    return max(x, x0 + DRAWER_W / 2)
 
 
 DRAWER_W = 0.5
+
+
+def _door_beside_drawers(c: dict, fixtures: list[dict]) -> tuple[float, float]:
+    """(left, hinge) local x of the door beside the drawer stack: the right half of the open front, shrunk so it never
+    covers the stack, or with drawers_at_right the open front left of the stack."""
+    x0, x1 = front_span(c, fixtures)
+    dx = drawer_x(c, fixtures)
+    if drawers_at_right(c, fixtures):
+        return x0 + 0.02, dx - DRAWER_W / 2 - REVEAL + 0.001  # the panel ends at the stack's reveal
+    return max((x0 + x1) / 2 + 0.02, dx + DRAWER_W / 2 + 0.02), x1 - 0.02
+
+
+def has_drawers(c: dict, fixtures: list[dict]) -> bool:
+    """False when the open front cannot hold the drawer stack and a door of MIN_DOOR_W beside it (kitchen_real_01's
+    0.43 m cabinet gave the door a width of -0.07 m). Such a cabinet gets one door across its open front."""
+    x0, x1 = front_span(c, fixtures)
+    dx = drawer_x(c, fixtures)
+    left, hinge = _door_beside_drawers(c, fixtures)
+    return x0 - 1e-6 <= dx - DRAWER_W / 2 and dx + DRAWER_W / 2 <= x1 + 1e-6 and hinge - left >= MIN_DOOR_W - 1e-6
+
+
+def has_door(c: dict, fixtures: list[dict]) -> bool:
+    return door_w(c, fixtures) >= MIN_DOOR_W - 1e-6
 
 
 def front_stand(c: dict, family: str, fixtures: list[dict]) -> tuple[float, float]:
@@ -139,14 +210,25 @@ def front_stand(c: dict, family: str, fixtures: list[dict]) -> tuple[float, floa
         return drawer_x(c, fixtures), 0.72
     # just left of the handle (away from the hinge), outside the door's swing, far enough out that the far end of
     # the handle arc stays within reach of the tilted-down grasp
-    return c["size"][0] / 2 - 0.02 - door_w(c, fixtures) + 0.06 - 0.1, 0.65
+    return door_hinge_x(c, fixtures) - door_w(c, fixtures) + 0.06 - 0.1, 0.65
+
+
+def door_hinge_x(c: dict, fixtures: list[dict]) -> float:
+    """Local x of the cabinet door's hinge, on the door's right edge: 2 cm in from the right end of the open front,
+    or beside the drawer stack when it holds that end (drawers_at_right)."""
+    if has_drawers(c, fixtures):
+        return _door_beside_drawers(c, fixtures)[1]
+    return front_span(c, fixtures)[1] - 0.02
 
 
 def door_w(c: dict, fixtures: list[dict]) -> float:
-    """Cabinet door width: right half of the counter, shrunk so it never covers the drawer stack."""
-    sx = c["size"][0]
-    left = max(0.02, drawer_x(c, fixtures) + DRAWER_W / 2 + 0.02)
-    return sx / 2 - 0.02 - left
+    """Cabinet door width: right half of the open front, shrunk so it never covers the drawer stack (or left of the
+    stack, drawers_at_right), or the whole open front on a cabinet without drawers."""
+    if has_drawers(c, fixtures):
+        left, hinge = _door_beside_drawers(c, fixtures)
+        return hinge - left
+    x0, x1 = front_span(c, fixtures)
+    return (x1 - 0.02) - (x0 + 0.02)
 
 
 def _sink_visuals(hx, hw, hd, sy, h) -> list[str]:
@@ -267,8 +349,11 @@ def counter_xml(c: dict, sinks: list[dict], fixtures: list[dict] = ()) -> str:
     g.append(_vr(x0, x1, -sy / 2 - 0.06, -sy / 2 + 0.012, h, h + 0.45, SPLASH))
     ya, yb, r2 = yf - FRONT_T, yf, REVEAL / 2
     zlo, zhi = KICK + REVEAL, zf - REVEAL
-    dx = drawer_x(c, fixtures)
-    da, db = max(dx - DRAWER_W / 2, xl), min(dx + DRAWER_W / 2, xr)
+    dx, drawers, door = drawer_x(c, fixtures), has_drawers(c, fixtures), has_door(c, fixtures)
+    da, db = (max(dx - DRAWER_W / 2, xl), min(dx + DRAWER_W / 2, xr)) if drawers else (xl, xl)
+    right = drawers and drawers_at_right(c, fixtures)
+    # the door panel's ends: right of the stack up to the open front's end, or left of a stack in a blind corner
+    pl, pr = (xl, da) if right else (db, min(xr, front_span(c, fixtures)[1] - FRONT_T))
     dz0 = CARCASS_H - 0.01
     yb_bar = front + 0.07
 
@@ -282,19 +367,22 @@ def counter_xml(c: dict, sinks: list[dict], fixtures: list[dict] = ()) -> str:
         return (f'<geom type="capsule" fromto="{x:.4f} {yb_bar:.4f} {za - 0.01:.4f} {x:.4f} {yb_bar:.4f} '
                 f'{zb + 0.01:.4f}" size="0.012" rgba="{STEEL}" {VIS}/>' + bar_standoffs(x, za, zb))
 
-    g.append(_vr(da + r2, db - r2, ya, yb, KICK + REVEAL, KICK + 0.227, FRONT))
-    g.append(vbar(dx, KICK + 0.08, KICK + 0.14))
-    if da - xl > 0.03:
+    if drawers:
+        g.append(_vr(da + r2, db - r2, ya, yb, KICK + REVEAL, KICK + 0.227, FRONT))
+        g.append(vbar(dx, KICK + 0.08, KICK + 0.14))
+    elif not door:  # too narrow for either: a fixed front
+        g.append(_vr(xl + r2, xr - r2, ya, yb, zlo, zhi, FRONT))
+    if not right and da - xl > 0.03:
         g.append(_vr(xl + r2, da - r2, ya, yb, zlo, zhi, FRONT))
         if da - xl >= 0.25:
             g.append(vbar((xl + da) / 2, 0.46, 0.54))
     g.append(_upper_cabinet_xml(cid, c, fixtures))
     body = [f'<body name="{cid}" pos="{cx} {cy} 0" euler="0 0 {yaw}">' + "".join(g)]
-    # drawers (slide along local +y) in the left half; hinged door cabinets in the right half.
-    # Each hidden collision box uses the same coordinate ranges as its visible front, so the arm touches what
-    # the cameras show (MAN-2).
+    # drawers (slide along local +y) in the left half of the open front; hinged door cabinets in the right half.
+    # A cabinet too narrow for both is one door (has_drawers). Each hidden collision box uses the same coordinate
+    # ranges as its visible front, so the arm touches what the cameras show (MAN-2).
     hid = f'{DRAWER} group="3"'
-    for k in range(2):
+    for k in range(2 if drawers else 0):
         dz = dz0 - k * 0.24  # top drawer sits in the band just under the counter top
         o = (dx, front, dz)
         z0, z1 = (0.600, zf - REVEAL) if k == 0 else (KICK + 0.23, 0.597)
@@ -311,19 +399,20 @@ def counter_xml(c: dict, sinks: list[dict], fixtures: list[dict] = ()) -> str:
             + _vr(da + r2, db - r2, ya, yb, z0, z1, FRONT, o)
             + bar_standoffs(dx, dz - 0.04, dz + 0.04, o)
             + f'<site name="{cid}_drawer{k}_handle" pos="0 0.07 0.0" size="0.01"/></body>')
-    dw = door_w(c, fixtures)
-    hinge = (sx / 2 - 0.02, front + 0.01, 0.36)
-    hx_ = -dw + 0.06
-    body.append(
-        f'<body name="{cid}_door" pos="{hinge[0]:.3f} {hinge[1]:.3f} {hinge[2]}">'
-        f'<joint name="{cid}_door" type="hinge" axis="0 0 -1" range="0 1.9" damping="2" frictionloss="0.2"/>'
-        f'<inertial pos="{-dw / 2:.3f} 0 0" mass="2" diaginertia="0.05 0.05 0.05"/>'
-        + _rbox(f"{cid}_door_panel", db + r2, xr - r2, ya, yb, zlo, zf - REVEAL, "0.65 0.5 0.36 1", hid, hinge)
-        + f'<geom name="{cid}_door_handle" type="capsule" size="0.012" fromto="{hx_:.3f} 0.05 0.1 '
-          f'{hx_:.3f} 0.05 0.25" rgba="{STEEL}" {DRAWER}/>'
-        + _vr(db + r2, xr - r2, ya, yb, zlo, zf - REVEAL, FRONT, hinge)
-        + "".join(_vcyl(STEEL, 0.005, (hx_, yb - hinge[1] - 0.001, z), (hx_, 0.05, z)) for z in (0.11, 0.24))
-        + f'<site name="{cid}_door_handle" pos="{hx_:.3f} 0.05 0.17" size="0.01"/></body>')
+    if door:
+        dw = door_w(c, fixtures)
+        hinge = (door_hinge_x(c, fixtures), front + 0.01, 0.36)
+        hx_ = -dw + 0.06
+        body.append(
+            f'<body name="{cid}_door" pos="{hinge[0]:.3f} {hinge[1]:.3f} {hinge[2]}">'
+            f'<joint name="{cid}_door" type="hinge" axis="0 0 -1" range="0 1.9" damping="2" frictionloss="0.2"/>'
+            f'<inertial pos="{-dw / 2:.3f} 0 0" mass="2" diaginertia="0.05 0.05 0.05"/>'
+            + _rbox(f"{cid}_door_panel", pl + r2, pr - r2, ya, yb, zlo, zf - REVEAL, "0.65 0.5 0.36 1", hid, hinge)
+            + f'<geom name="{cid}_door_handle" type="capsule" size="0.012" fromto="{hx_:.3f} 0.05 0.1 '
+              f'{hx_:.3f} 0.05 0.25" rgba="{STEEL}" {DRAWER}/>'
+            + _vr(pl + r2, pr - r2, ya, yb, zlo, zf - REVEAL, FRONT, hinge)
+            + "".join(_vcyl(STEEL, 0.005, (hx_, yb - hinge[1] - 0.001, z), (hx_, 0.05, z)) for z in (0.11, 0.24))
+            + f'<site name="{cid}_door_handle" pos="{hx_:.3f} 0.05 0.17" size="0.01"/></body>')
     return "".join(body) + "</body>"
 
 
@@ -584,9 +673,10 @@ def part_names(twin: dict) -> list[dict]:
     for f in fx:
         t, fid = f["type"], f["id"]
         if is_counter_host(f) and not is_table(f):  # a table has no moving parts
-            for k in range(2):
+            for k in range(2 if has_drawers(f, fx) else 0):
                 add(fid, f"{fid}_drawer{k}", "slide", 0.3)
-            add(fid, f"{fid}_door", "hinge", 1.2)
+            if has_door(f, fx):
+                add(fid, f"{fid}_door", "hinge", 1.2)
             for k in range(len(upper_doors(f, fx))):
                 add(fid, f"{fid}_upper_door{k}", "hinge", 1.2)
             for s in _sinks_in(f, sinks)[:1]:

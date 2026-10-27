@@ -1007,3 +1007,16 @@ def test_index_shows_retention_note_buttons_for_owner_only_and_progress(make, mo
     _set_status(out, a["id"], status="running", stage="sim", progress={"done": 3, "total": 8})
     _, page, _ = _fetch(srv, "/")
     assert b"sim: 3/8 episodes" in page
+
+
+def test_npz_depth_disguised_as_npy_is_rejected(make, tmp_path):
+    def mutate(manifest, root):
+        path = root / manifest["frames"][0]["depth"]
+        with path.open("wb") as stream:
+            np.savez(stream, depth=np.zeros((48, 64), dtype=np.float32))
+
+    srv, out = make()
+    blob = _frames_zip(tmp_path, "m", _edit_manifest(mutate))
+    status, data, _ = _post(srv, [("scan", "hero.json", HERO_SCAN), ("frames", "frames.zip", blob)])
+    assert status == 422 and data["code"] == "bad_depth" and data["field"] == "frames", data
+    assert not list((out / "jobs").glob("*/status.json"))
