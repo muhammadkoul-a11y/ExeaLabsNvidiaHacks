@@ -64,6 +64,16 @@ def test_no_baseline_says_not_measured_and_no_ratio(out):
     assert "seconds_ratio_teleop_over_generated" not in rep["comparison"]
 
 
+def test_default_baseline_is_the_shipped_p3_run_unless_the_out_dir_has_one(out):
+    """The demo export and `arrival cost` both use this, so the site compares against P3 like the CLI does."""
+    p3 = cost.default_baseline(out)
+    assert p3 is not None and p3.parts[-3:] == ("results", "p3-teleop-2026-10-21", "teleop_baseline.json")
+    rep = cost.build(out, baseline_path=p3)
+    assert rep["comparison"]["measured"] is True and rep["comparison"]["teleop"]["n_success"] == 20
+    _w(out / "teleop_baseline.json", BASELINE)
+    assert cost.default_baseline(out) is None and cost.build(out)["teleop_baseline"]["n_success"] == 10
+
+
 def test_unmeasured_products_stay_null(out):
     d = cost.build(out)["dollars"]
     assert d["local_cpu"] == {"usd": 0, "measured": True}

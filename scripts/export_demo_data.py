@@ -619,7 +619,7 @@ def main(argv=None) -> int:
             ev.pop(k)
         stats["eval"] = ev
         try:
-            stats["cost"] = cost_mod.build(scratch)
+            stats["cost"] = cost_mod.build(scratch, baseline_path=cost_mod.default_baseline(scratch))
         except Exception as e:  # report, do not hide
             stats["cost"] = None
             stats["cost_error"] = f"{type(e).__name__}: {e}"

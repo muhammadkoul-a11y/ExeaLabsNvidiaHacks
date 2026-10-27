@@ -258,6 +258,14 @@ def compare(rows: list[dict], dol: dict, tele: dict | None, usage_scope: dict | 
             "note": "generated seconds are local wall time of the generate call; teleop seconds are operator time"}
 
 
+def default_baseline(out_dir) -> Path | None:
+    """<out>/teleop_baseline.json if present, else the shipped P3 baseline, else None."""
+    if (Path(out_dir) / "teleop_baseline.json").exists():
+        return None  # build() picks it up itself
+    p3 = Path(__file__).resolve().parents[2] / "docs" / "results" / "p3-teleop-2026-10-21" / "teleop_baseline.json"
+    return p3 if p3.exists() else None
+
+
 def build(out_dir, usage_path=None, pricing_path="configs/pricing.example.yaml", baseline_path=None) -> dict:
     out = Path(out_dir)
     repo = Path(__file__).resolve().parents[2]
@@ -325,12 +333,7 @@ def main(argv=None) -> int:
     ap.add_argument("--baseline", help="teleop_baseline.json (default: <out>/teleop_baseline.json if present)")
     ap.add_argument("--json", action="store_true", help="print the report as JSON instead of a table")
     a = ap.parse_args(argv)
-    baseline_path = a.baseline
-    if baseline_path is None and not (Path(a.out) / "teleop_baseline.json").exists():
-        repo = Path(__file__).resolve().parents[2]
-        p3 = repo / "docs" / "results" / "p3-teleop-2026-10-21" / "teleop_baseline.json"
-        if p3.exists():
-            baseline_path = p3
+    baseline_path = a.baseline or default_baseline(a.out)
     try:
         rep = build(a.out, a.usage, a.pricing, baseline_path)
     except CostError as e:
