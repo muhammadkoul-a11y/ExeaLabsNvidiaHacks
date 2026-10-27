@@ -121,7 +121,7 @@ def test_export_refuses_a_folder_that_is_not_an_earlier_export(out, tmp_path):
     mine.mkdir()
     (mine / "notes.md").write_text("keep me")
     assert cli.main(["export-site", "--out", str(out), "--scans", str(REPO / "scans"), "--dest", str(mine)]) == 1
-    assert (mine / "notes.md").read_text() == "keep me"
+    assert (mine / "notes.md").read_text(encoding="utf-8") == "keep me"
     empty = tmp_path / "empty"
     empty.mkdir()
     export_site(out, REPO / "scans", empty, log=lambda *_: None)

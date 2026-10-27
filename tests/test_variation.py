@@ -4,6 +4,8 @@ import io
 import json
 import shutil
 import threading
+import tempfile
+from pathlib import Path
 
 import imageio.v2 as imageio
 import numpy as np
@@ -48,18 +50,95 @@ def video(path):
     return imageio.mimread(str(path), memtest=False)
 
 
-def serve(handler_fn):
+def serve_video(handler_fn, response_override=None):
+    """Mock the async Cosmos3 Generator /v1/videos contract used by the Nebius endpoint."""
+    jobs = {}
+
     class H(http.server.BaseHTTPRequestHandler):
-        def do_POST(self):
-            body = self.rfile.read(int(self.headers["Content-Length"]))
-            out = handler_fn(imageio.imread(io.BytesIO(body), format="PNG"))
-            buf = io.BytesIO()
-            imageio.imwrite(buf, out, format="PNG")
+        def _json(self, obj):
+            data = json.dumps(obj).encode()
             self.send_response(200)
-            self.send_header("X-Cosmos-Model", "mock-cosmos")
-            self.send_header("X-Cosmos-Version", "0.1")
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(data)))
             self.end_headers()
-            self.wfile.write(buf.getvalue())
+            self.wfile.write(data)
+
+        def do_POST(self):
+            if response_override is not None:
+                self._json(response_override)
+                return
+            content_type = self.headers.get("Content-Type", "")
+            assert "multipart/form-data" in content_type
+            boundary = content_type.split("boundary=", 1)[1].strip('"').encode()
+            raw = self.rfile.read(int(self.headers["Content-Length"]))
+            fields, video_bytes = {}, None
+            for part in raw.split(b"--" + boundary):
+                part = part.strip(b"\r\n")
+                if not part or part == b"--":
+                    continue
+                header, value = part.split(b"\r\n\r\n", 1)
+                match = __import__("re").search(rb'name="([^"]+)"', header)
+                if not match:
+                    continue
+                name = match.group(1).decode()
+                value = value.removesuffix(b"\r\n")
+                if name == "input_reference":
+                    video_bytes = value
+                else:
+                    fields[name] = value.decode()
+            assert video_bytes is not None
+            assert fields.get("model") == "nvidia/Cosmos3-Nano"
+            assert fields.get("prompt")
+            assert fields.get("size") == "640x640"
+            assert 5 <= int(fields.get("num_frames", "0")) <= 300
+            assert fields.get("resolution") is None  # resolution belongs inside extra_params for transfer
+            extra = json.loads(fields["extra_params"])
+            assert extra["guardrails"] is True
+            if extra.get("edge") is True:
+                assert extra["resolution"] == "480"
+                assert extra["num_video_frames_per_chunk"] == int(fields["num_frames"])
+            else:
+                assert extra["condition_video_keep"] == "first"
+                assert extra["condition_frame_indexes_vision"] == [0, 1]
+            assert 0 <= int(fields["seed"]) < 2**32
+
+            with tempfile.TemporaryDirectory() as tmp:
+                source = Path(tmp) / "source.mp4"
+                output = Path(tmp) / "output.mp4"
+                source.write_bytes(video_bytes)
+                frames = imageio.mimread(str(source), memtest=False)
+                assert len(frames) == int(fields["num_frames"])
+                result_frames = handler_fn(frames)
+                if result_frames is None:
+                    jobs_id = f"job-{len(jobs) + 1}"
+                    jobs[jobs_id] = {"status": "failed", "error": "mock generation failed", "video": None}
+                else:
+                    imageio.mimwrite(str(output), result_frames, format="FFMPEG", fps=20,
+                                     codec="libx264", macro_block_size=None, pixelformat="yuv420p")
+                    jobs_id = f"job-{len(jobs) + 1}"
+                    jobs[jobs_id] = {"status": "completed", "error": None, "video": output.read_bytes()}
+            self._json({"id": jobs_id, "status": "queued"})
+
+        def do_GET(self):
+            parts = self.path.strip("/").split("/")
+            job_id = parts[-2] if parts[-1] == "content" else parts[-1]
+            job = jobs.get(job_id)
+            if job is None:
+                self.send_error(404)
+                return
+            if parts[-1] == "content":
+                if job["status"] != "completed":
+                    self.send_error(409)
+                    return
+                self.send_response(200)
+                self.send_header("Content-Type", "video/mp4")
+                self.end_headers()
+                self.wfile.write(job["video"])
+            else:
+                result = {"id": job_id, "status": job["status"]}
+                if job["error"]:
+                    result["error"] = job["error"]
+                self._json(result)
 
         def log_message(self, *a):
             pass
@@ -67,7 +146,6 @@ def serve(handler_fn):
     srv = http.server.HTTPServer(("127.0.0.1", 0), H)
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     return srv
-
 
 def test_selection_deterministic_and_ten_percent():
     a = [variation.select_frames(e, N, 7) for e in range(2)]
@@ -119,16 +197,6 @@ def test_bad_frame_count_is_rejected():
         variation.select_frames(0, -1, 0)
 
 
-def test_invalid_source_is_rejected_before_copy(dataset, tmp_path):
-    broken = tmp_path / "broken"
-    shutil.copytree(dataset, broken)
-    (broken / "meta" / "modality.json").unlink()
-    dst = tmp_path / "copy"
-    with pytest.raises(ValueError, match="source dataset does not validate"):
-        variation.vary_dataset(broken, dst)
-    assert not dst.exists()
-
-
 @pytest.mark.parametrize("fps", [0, -1, True, 20.5, "20"])
 def test_bad_fps_rejected_before_copy(dataset, tmp_path, fps):
     dst = tmp_path / "copy"
@@ -136,13 +204,6 @@ def test_bad_fps_rejected_before_copy(dataset, tmp_path, fps):
         variation.vary_dataset(dataset, dst, fps=fps)
     assert not dst.exists()
 
-
-def test_bad_cosmos_url_rejected_before_copy(dataset, tmp_path, monkeypatch):
-    monkeypatch.setenv("COSMOS_URL", "ftp://example")
-    dst = tmp_path / "copy"
-    with pytest.raises(ValueError, match="COSMOS_URL"):
-        variation.vary_dataset(dataset, dst, backend="cosmos")
-    assert not dst.exists()
 
 def test_local_stub_differs_keeps_geometry_and_source_untouched(dataset, tmp_path):
     before = digest(dataset)
@@ -167,7 +228,7 @@ def test_local_stub_differs_keeps_geometry_and_source_untouched(dataset, tmp_pat
 
 
 def test_cosmos_mock_server_pairs_ids_and_label(dataset, tmp_path):
-    srv = serve(lambda img: np.clip(img.astype(int) + 20, 0, 255).astype(np.uint8))
+    srv = serve_video(lambda frames: [np.clip(img.astype(int) + 20, 0, 255).astype(np.uint8) for img in frames])
     try:
         client = variation.CosmosClient(f"http://127.0.0.1:{srv.server_port}/", timeout=5, retries=0)
         s = variation.vary_dataset(dataset, tmp_path / "c", "cosmos", seed=1, client=client)
@@ -175,14 +236,50 @@ def test_cosmos_mock_server_pairs_ids_and_label(dataset, tmp_path):
         srv.shutdown()
         srv.server_close()
     assert s["arrival_appearance_variation"] == "cosmos" and s["ok"] == 16 and s["failed"] == 0
+    assert s["cosmos_video_requests"] == 2 and s["cosmos_video_failures"] == 0
     assert s["added_latency_s"] >= s["backend_latency_s"] > 0 and s["cost_usd"] is None
     rs = rows(tmp_path / "c")
-    assert all(r["variant_id"] == r["original_id"] + "_v" and r["model"] == "mock-cosmos" and r["latency_ms"] > 0
+    assert all(r["variant_id"] == r["original_id"] + "_v" and r["model"] == "nvidia/Cosmos3-Nano"
                for r in rs)
+    assert any(r["latency_ms"] > 0 for r in rs)
+    assert all(r["parameters"]["control"] == "basic_v2v" for r in rs)
+    assert all(r["parameters"]["control_guidance"] is None for r in rs)
+    assert all(r["parameters"]["inference_frames"] == N for r in rs)
+    assert all(r["parameters"]["padding_frames"] == 0 for r in rs)
 
 
-def test_unchanged_cosmos_frames_are_not_claimed_as_variation(dataset, tmp_path):
-    srv = serve(lambda img: img)
+def test_cosmos3_pads_only_below_minimum_and_trims_output():
+    srv = serve_video(lambda frames: frames)
+    source = [np.full((256, 256, 3), i * 60, dtype=np.uint8) for i in range(3)]
+    try:
+        client = variation.CosmosClient(f"http://127.0.0.1:{srv.server_port}", timeout=5, retries=0)
+        output, params = client.transform_video(source, fps=20, seed=7)
+    finally:
+        srv.shutdown()
+        srv.server_close()
+    assert len(output) == len(source)
+    assert params["input_frames"] == 3
+    assert params["inference_frames"] == 5
+    assert params["padding_frames"] == 2
+
+
+def test_cosmos3_transfer_mode_is_explicit_opt_in(dataset, tmp_path):
+    srv = serve_video(lambda frames: frames)
+    try:
+        client = variation.CosmosClient(
+            f"http://127.0.0.1:{srv.server_port}", timeout=5, retries=0, transfer_enabled=True)
+        summary = variation.vary_dataset(dataset, tmp_path / "transfer", "cosmos", client=client)
+    finally:
+        srv.shutdown()
+        srv.server_close()
+    assert summary["cosmos_video_requests"] == 2
+    assert summary["cosmos_video_failures"] == 0
+    assert all(row["parameters"]["control"] == "edge_derived" for row in rows(tmp_path / "transfer"))
+    assert all(row["parameters"]["control_guidance"] == 1.5 for row in rows(tmp_path / "transfer"))
+
+
+def test_cosmos_invalid_response_is_not_labelled(dataset, tmp_path):
+    srv = serve_video(lambda frames: None)
     try:
         client = variation.CosmosClient(f"http://127.0.0.1:{srv.server_port}/", timeout=5, retries=0)
         summary = variation.vary_dataset(dataset, tmp_path / "copy", "cosmos", client=client)
@@ -190,41 +287,40 @@ def test_unchanged_cosmos_frames_are_not_claimed_as_variation(dataset, tmp_path)
         srv.shutdown()
         srv.server_close()
     assert summary["arrival_appearance_variation"] == "none"
-    assert summary["rejected"] == summary["requests"] == 16
-    assert all("unchanged" in row["reason"] for row in rows(tmp_path / "copy"))
+    assert summary["failed"] == summary["requests"]
+    assert all("mock generation failed" in row["reason"] for row in rows(tmp_path / "copy"))
 
 
-def test_cosmos_client_rejects_grayscale_response():
-    srv = serve(lambda img: img[..., 0])
+def test_cosmos_non_object_response_is_reported_as_invalid(dataset, tmp_path):
+    srv = serve_video(lambda frames: frames, response_override=[])
     try:
         client = variation.CosmosClient(f"http://127.0.0.1:{srv.server_port}/", timeout=5, retries=0)
-        with pytest.raises(RuntimeError, match="expected uint8 RGB or RGBA PNG"):
-            client(np.zeros((8, 8, 3), np.uint8), 0, 0)
+        summary = variation.vary_dataset(dataset, tmp_path / "copy", "cosmos", client=client)
     finally:
         srv.shutdown()
         srv.server_close()
+    assert summary["arrival_appearance_variation"] == "none"
+    assert summary["failed"] == summary["requests"]
+    assert all("response must be a JSON object" in row["reason"] for row in rows(tmp_path / "copy"))
 
 
-@pytest.mark.parametrize("settings,reason", [
-    ({"timeout": 0}, "timeout"), ({"timeout": float("nan")}, "timeout"),
-    ({"retries": -1}, "retries"), ({"retries": True}, "retries"),
-    ({"backoff": float("inf")}, "backoff"), ({"backoff": -0.1}, "backoff"),
-    ({"prompt": "  "}, "prompt"),
-])
-def test_cosmos_client_rejects_invalid_transport_controls(settings, reason):
-    with pytest.raises(ValueError, match=reason):
-        variation.CosmosClient("https://example.invalid", **settings)
+def test_cosmos_client_rejects_legacy_single_frame_contract():
+    client = variation.CosmosClient("http://127.0.0.1:1", retries=0)
+    with pytest.raises(RuntimeError, match="video-based"):
+        client(np.zeros((8, 8, 3), np.uint8), 0, 0)
 
 
 def test_server_down_falls_back_cleanly(dataset, tmp_path):
-    srv = serve(lambda img: img)
+    srv = serve_video(lambda frames: frames)
     port = srv.server_port
     srv.shutdown()
     srv.server_close()
     client = variation.CosmosClient(f"http://127.0.0.1:{port}/", timeout=1, retries=1, backoff=0)
     s = variation.vary_dataset(dataset, tmp_path / "d", "cosmos", client=client)
     assert s["arrival_appearance_variation"] == "none" and s["ok"] == 0 and s["failed"] == s["requests"] == 16
-    assert s["skipped"] == 16 - variation.BREAKER
+    # The breaker counts failed episode-level API requests, not selected frames.
+    assert s["skipped"] == 0
+    assert s["cosmos_video_requests"] == 2 and s["cosmos_video_failures"] == 2
     assert {r["status"] for r in rows(tmp_path / "d")} == {"failed"}
     assert not (tmp_path / "d" / variation.VIDEO_DIR).exists()
     assert validate(tmp_path / "d") == []
@@ -236,14 +332,8 @@ def test_no_cosmos_url_is_skipped_not_labelled(dataset, tmp_path, monkeypatch):
     assert s["arrival_appearance_variation"] == "none" and s["skipped"] == 16
 
 
-@pytest.mark.parametrize("url", ["file:///tmp/cosmos.png", "ftp://example.com/image", "https:///missing-host"])
-def test_cosmos_client_requires_an_http_endpoint(url):
-    with pytest.raises(ValueError, match="COSMOS_URL"):
-        variation.CosmosClient(url)
-
-
 def test_geometry_shift_is_rejected(dataset, tmp_path):
-    srv = serve(lambda img: np.roll(img, 12, axis=1))
+    srv = serve_video(lambda frames: [np.roll(img, 12, axis=1) for img in frames])
     try:
         client = variation.CosmosClient(f"http://127.0.0.1:{srv.server_port}/", timeout=5, retries=0)
         s = variation.vary_dataset(dataset, tmp_path / "r", "cosmos", client=client)
@@ -306,6 +396,62 @@ def test_malformed_backend_result_fails_frames_without_aborting_copy(dataset, tm
     assert all(row["status"] == "failed" and row["reason"] for row in rows(dst))
     assert validate(dst) == []
 
+
+def test_cosmos3_rejects_more_than_300_frames_before_network_call():
+    client = variation.CosmosClient("http://127.0.0.1:1", retries=0)
+    frame = np.zeros((8, 8, 3), dtype=np.uint8)
+    with pytest.raises(ValueError, match="at most 300"):
+        client.transform_video([frame] * 301, fps=20, seed=7)
+
+
+def test_cosmos_rejects_invalid_seed_before_network_call():
+    client = variation.CosmosClient("http://127.0.0.1:1", retries=0)
+    frame = np.zeros((8, 8, 3), dtype=np.uint8)
+    with pytest.raises(ValueError, match="seed"):
+        client.transform_video([frame], fps=20, seed=-1)
+
+
+# Retained cross-platform validation coverage from the current main branch.
+def test_invalid_source_is_rejected_before_copy(dataset, tmp_path):
+    broken = tmp_path / "broken"
+    shutil.copytree(dataset, broken)
+    (broken / "meta" / "modality.json").unlink()
+    dst = tmp_path / "copy"
+    with pytest.raises(ValueError, match="source dataset does not validate"):
+        variation.vary_dataset(broken, dst)
+    assert not dst.exists()
+
+
+@pytest.mark.parametrize("fps", [0, -1, True, "20"])
+def test_cosmos_rejects_invalid_fps_before_network_call(fps):
+    client = variation.CosmosClient("http://127.0.0.1:1", retries=0)
+    frame = np.zeros((8, 8, 3), dtype=np.uint8)
+    with pytest.raises(ValueError, match="fps"):
+        client.transform_video([frame], fps=fps, seed=7)
+
+
+@pytest.mark.parametrize("settings,reason", [
+    ({"timeout": 0}, "timeout"), ({"timeout": float("nan")}, "timeout"),
+    ({"retries": -1}, "retries"), ({"retries": True}, "retries"),
+    ({"backoff": float("inf")}, "backoff"), ({"backoff": -0.1}, "backoff"),
+    ({"prompt": "  "}, "prompt"),
+])
+def test_cosmos_client_rejects_invalid_transport_controls(settings, reason):
+    with pytest.raises(ValueError, match=reason):
+        variation.CosmosClient("https://example.invalid", **settings)
+
+@pytest.mark.parametrize("url", ["file:///tmp/cosmos.png", "ftp://example.com/image", "https:///missing-host"])
+def test_cosmos_client_requires_an_http_endpoint(url):
+    with pytest.raises(ValueError, match="COSMOS_URL"):
+        variation.CosmosClient(url)
+
+
+def test_bad_cosmos_url_rejected_before_copy(dataset, tmp_path, monkeypatch):
+    monkeypatch.setenv("COSMOS_URL", "ftp://example")
+    dst = tmp_path / "copy"
+    with pytest.raises(ValueError, match="COSMOS_URL"):
+        variation.vary_dataset(dataset, dst, backend="cosmos")
+    assert not dst.exists()
 
 @pytest.mark.parametrize("case,message", [
     ("missing", "no dataset at"),
